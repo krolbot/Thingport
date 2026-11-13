@@ -12,7 +12,7 @@
       <div class="header__text">
         <h1 class="header__title">Thingport Grab</h1>
         <div class="instance" id="instance-row" hidden>
-          <span class="instance__url" id="instance-url-text"></span>
+          <a class="instance__url" id="instance-link"></a>
           <button
             type="button"
             class="icon-btn"
@@ -63,6 +63,10 @@
 
     <div class="tabs" role="tablist" aria-label="Sections" id="tabs">
       <button type="button" class="tabs__tab" role="tab" id="tab-connect" aria-controls="panel-connect">Connect</button>
+      <!-- Connected only (popup/index.ts): the bubble it styles is the one that imports. -->
+      <button type="button" class="tabs__tab" role="tab" id="tab-appearance" aria-controls="panel-appearance" hidden>
+        Appearance
+      </button>
       <button type="button" class="tabs__tab" role="tab" id="tab-offline" aria-controls="panel-offline">
         Offline features
       </button>
@@ -152,9 +156,10 @@
         <ul class="features">
           <li class="feature">
             <div class="feature__text">
-              <label class="feature__name" for="normalize-switch">Normalize MakerWorld 3MFs</label>
+              <label class="feature__name" for="normalize-switch">Adapt MakerWorld 3MFs</label>
               <p class="feature__desc" id="normalize-desc">
-                Adds a Download normalized button to MakerWorld models, for slicers that mis-read Bambu 3MFs.
+                Adds a Download adapted button to MakerWorld models: a copy for the slicer your Thingport instance opens
+                files in, or without one, the copy PrusaSlicer and the slicers like it read.
               </p>
             </div>
             <input
@@ -197,6 +202,20 @@
           </li>
         </ul>
         <div class="error" id="offline-error" role="alert"></div>
+      </div>
+
+      <!-- The floating bubble on model pages: its style and its corner (popup/appearance.ts). -->
+      <div class="tab-panel" role="tabpanel" id="panel-appearance" aria-labelledby="tab-appearance" hidden>
+        <div class="section">
+          <h2 class="section__title" id="bubble-style-title">Bubble style</h2>
+          <div class="looks" id="bubble-styles" role="radiogroup" aria-labelledby="bubble-style-title"></div>
+        </div>
+        <div class="section">
+          <h2 class="section__title" id="bubble-place-title">Bubble location</h2>
+          <div class="spots" id="bubble-places" role="radiogroup" aria-labelledby="bubble-place-title"></div>
+          <p class="spots__caption" id="bubble-place-name" aria-hidden="true"></p>
+        </div>
+        <div class="error" id="appearance-error" role="alert"></div>
       </div>
 
       <div class="tab-panel" role="tabpanel" id="panel-history" aria-labelledby="tab-history" hidden>

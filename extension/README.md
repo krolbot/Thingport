@@ -2,15 +2,17 @@
 
 A browser extension for Chrome, Edge and Firefox that imports models into your self-hosted Thingport instance without
 leaving the site they're on: MakerWorld, Printables, Thingiverse, MyMiniFactory, Snapmaker Space, MakerOnline, Creality
-Cloud, NexPrint, Thangs, Cults3D, eufyMake, Pinshape, OwlCAD, Toymakr3D, Makerables, CGTrader, GrabCAD and Meshy.
+Cloud, NexPrint, Thangs, Cults3D, eufyMake, Pinshape, OwlCAD, Toymakr3D, Makerables, CGTrader, GrabCAD, Meshy, PIXUP,
+Fab365 and 3DExport.
 Visiting a model page, or a collection or likes page, shows a floating Thingport icon. Clicking it opens the import
 panel: the model's picture and name as the page shows them, and one box that picks one of your collections or makes a
 new one as you type (on a list's page, the models it lists instead). It imports the same way Thingport's own
 "Add > Import" does.
 
-It's useful without Thingport too: on MakerWorld model pages it adds a **Download normalized**
-button that turns the Bambu Studio project into a 3MF that PrusaSlicer, Cura and other slicers open
-with its colors and print settings intact. See [Download normalized](#download-normalized-no-thingport-needed).
+It's useful without Thingport too: on MakerWorld model pages it adds a **Download adapted**
+button that saves the Bambu Studio project as a copy for the slicer your Thingport instance opens files in, or, without
+one, the copy PrusaSlicer and the slicers like it open with its colors and print settings. See
+[Download adapted](#download-adapted-no-thingport-needed).
 It can also give Thingiverse a [dark theme and hide its ads](#thingiverse-dark-mode-and-hidden-ads-no-thingport-needed).
 
 <table>
@@ -127,23 +129,24 @@ Only needed if you can't use the store, e.g. to get a release before the store's
 A hand-installed copy doesn't update itself -- repeat these steps for a newer version.
 </details>
 
-## Download normalized (no Thingport needed)
+## Download adapted (no Thingport needed)
 
-MakerWorld's files are Bambu Studio projects, which PrusaSlicer, Cura, Anycubic Slicer Next,
-Creality Print, Elegoo Slicer, Snapmaker Orca and eufyMake Studio often open without their colors or print settings.
-On a MakerWorld model page, the extension adds a **Download normalized** button under MakerWorld's
-own "Open in Bambu Studio" (or Download) button. Clicking it downloads the selected print profile's file, converts it, and saves
-a `<name>-normalized.3mf` that keeps painted colors, filament colors, plates and the designer's
-settings (walls, layer height, infill, supports). Multi-part objects may be merged into one,
-per-object overrides and layer color changes are dropped, and you pick your own printer profile.
-Hover the bulb on the button for the same summary.
+MakerWorld's files are Bambu Studio projects, which PrusaSlicer, Cura, eufyMake Studio and the slicers built on
+OrcaSlicer often open without their colors, parts or print settings, or with questions about the file's version. On a
+MakerWorld model page, the extension adds a **Download adapted** button under MakerWorld's own "Open in Bambu Studio"
+(or Download) button. Clicking it downloads the selected print profile's file and saves `<name>-adapted.3mf`, a copy
+made for the slicer your Thingport instance opens files in (picked in its Configuration), the copy Thingport's
+**Open adapted** gives that slicer without a printer: it isn't made for your printer yet. Without an instance, it's the copy PrusaSlicer and the slicers like it read: it goes
+into your own printer, filament and print settings, with the designer's settings on each object and the painted colors
+on your extruders. Hover the bulb on the button for what the copy keeps.
 
-- **Who sees it:** everyone, whether or not the extension is connected to a Thingport instance. The
-  switch in the popup is the only thing that decides: turn off **Normalize MakerWorld 3MFs** under **Offline
-  features** (**Extra features** once connected) to hide it. With Bambu Studio or OrcaSlicer, MakerWorld's own
-  file is already the right one, so you probably want it off.
-- **Where it runs:** entirely in your browser, the same conversion Thingport's "Open normalized"
-  does on the server. The file goes nowhere but your downloads folder.
+- **Who sees it:** everyone, whether or not the extension is connected to a Thingport instance, while the popup's
+  **Adapt MakerWorld 3MFs** switch is on, under **Offline features** (**Extra features** once connected). It isn't
+  offered when your instance's slicer opens MakerWorld's files as they are, as Bambu Studio does, or when you switched
+  that slicer's **Open adapted** off in your instance's Configuration. If the instance doesn't say in time, the button
+  is offered and asks it again when you click.
+- **Where it runs:** entirely in your browser, with the same converter Thingport's **Open adapted** uses on the
+  server. The file goes nowhere but your downloads folder.
 - **Limits:** you need to be signed in to MakerWorld, as for its own Download button, and files over
   50 MB are too big to convert in the browser -- the button says so. MakerWorld's own button is found by
   its label, in any of the languages the site comes in.
@@ -183,10 +186,18 @@ import button. Reopen the popup any time to change the instance (the pencil next
 **Extension enabled** off, after a confirmation too, to pause it everywhere without losing the saved setup. Disconnecting signs Grab out on the instance and,
 for a connection approved in Thingport, removes it from your Thingport profile too.
 
-Once connected, the popup's tabs are **Providers** (the sites Grab runs on), **Extra features** (the
-[ones that need no Thingport](#download-normalized-no-thingport-needed)) and **History**: your last imports, and the
-last 10 models you opened on any of those sites, each with its site's logo. Recently viewed models are listed before
-you connect too, and they stay in this browser.
+Once connected, the popup's tabs are **Providers** (the sites Grab runs on; click one to open it), **Appearance**,
+**Extra features** (the [ones that need no Thingport](#download-adapted-no-thingport-needed)) and **History**: your
+last imports, and the last 10 models you opened on any of those sites, each with its site's logo. Recently viewed
+models are listed before you connect too, and they stay in this browser. Click the instance's address under the title
+to open it.
+
+**Appearance** sets how the floating icon on model pages looks and where it sits. Its styles are the white
+**Bubble** (the default), **Pill** (the icon with a word: "Grab", or what clicking it does), **Mini** (smaller, and
+half see-through until the mouse comes near), **Brand** (solid green), **Glass** (frosted, the page showing through)
+and **Edge tab** (docked to the window's side). It can sit in any corner: bottom right (the default), bottom left, or
+the top ones, which sit below a site's own header. A change shows at once, on pages already open too, and the import
+panel opens from wherever the icon is.
 
 The extension re-authenticates automatically as its session token nears expiry -- there's nothing
 to keep re-entering day to day. A paired connection keeps working until you remove it in Thingport,
@@ -330,15 +341,48 @@ changes; visiting the site now and then keeps it alive. A model's details and an
 without it: on the **Likes** tab of anyone's profile (`grabcad.com/<member>/likes`), the panel imports the listed models
 and can keep them in sync. GrabCAD has no collections.
 
+### Meshy: a sign-in for every download
+
+Meshy converts a model for your account each time it's downloaded, so every import needs your sign-in: opening
+meshy.ai signed in connects your account to Thingport, and sends the new sign-in whenever it changes. Meshy keeps other
+people's community models for its Pro and Studio plans, and its AI agent's for paid ones, so on a post your plan can't
+download the panel says **Needs Meshy Pro** or **Needs a paid Meshy plan** instead of offering an import. A collection's
+page imports its posts and can keep them in sync.
+
+### PIXUP: free models ordered for you
+
+PIXUP gives a model's files only to a member who owns it, a free one too, once it's in their library through a $0
+order. Opening pixup3d.com signed in connects your account to Thingport, and sends the new sign-in whenever it changes;
+Thingport places the $0 order for a free model itself. On a paid model you haven't bought, the panel says so up front.
+Anyone's wishlist and collections import from their pages, and the panel can keep them in sync.
+
+### Fab365: a sign-in kept in its pages
+
+Fab365 gives its files, free ones included, only to a signed-in member, and keeps the sign-in in the page's own storage
+rather than a cookie. Grab reads it from an open fab365.net tab, the way the site does, and sends it whenever it
+changes; Thingport renews it itself as it runs out. Your favourites (`fab365.net/my/likes`), which only you can see,
+import from their page, and the panel can keep them in sync.
+
+### 3DExport: a sign-in until you sign out
+
+3DExport gives its files, free ones included, only to a signed-in user. Its sign-in lasts until you sign out there, in
+any browser: opening 3dexport.com connects your account to Thingport, a new sign-in is sent whenever it changes, and
+signing out there makes Thingport forget the one Grab sent. On a paid model you haven't bought, the panel says so up
+front. Your Default Collection (`3dexport.com/mybookmarks/default`) and any collection's page, a private one of yours
+too, import the listed models and can keep them in sync.
+
 ## What counts as "importable"
 
-- A single model page on any of the sites -- hidden once that exact page is in your library, unless the panel has
-  something to add: another print profile of a model you have, or details Thingport's copy is missing, which
-  **Fetch missing details** brings over.
-- A MakerWorld, Printables, MyMiniFactory, MakerOnline, Creality Cloud, NexPrint, Thangs or Pinshape collection, a
-  Thingiverse Collection, one of your Cults3D printlists; anyone's Thingiverse, Cults3D, Pinshape or GrabCAD likes; your
-  own MakerOnline, Creality Cloud, Thangs, eufyMake, Toymakr3D or CGTrader likes, your CGTrader wishlist, or your
-  Snapmaker Space likes and bookmarks -- lets you import the listed designs in one go.
+- A single model page on any of the sites. Once the model is in your library the icon wears a badge: a **+** while
+  the panel has something to add (another print profile of a model you have, or details Thingport's copy is missing,
+  which **Fetch missing details** brings over), and a **✓** with a green ring once everything's in, when the panel
+  just offers **Open in Thingport**. If some of the print profiles you picked fail, the panel says **Partly imported**,
+  ending with the last error, such as a CAPTCHA or the daily download limit.
+- A MakerWorld, Printables, MyMiniFactory, MakerOnline, Creality Cloud, NexPrint, Thangs, Pinshape, Meshy, PIXUP or
+  3DExport collection, a Thingiverse Collection, one of your Cults3D printlists, your 3DExport Default Collection;
+  anyone's Thingiverse, Cults3D, Pinshape or GrabCAD likes or PIXUP wishlist; your own MakerOnline, Creality Cloud,
+  Thangs, eufyMake, Toymakr3D or CGTrader likes, your CGTrader wishlist, your Fab365 favourites, or your Snapmaker Space
+  likes and bookmarks -- lets you import the listed designs in one go.
 
 Picking a destination collection is only offered for a single-model import; a batch import instead
 lands in Thingport's own auto-named collection for that batch (e.g. "Thingiverse likes (@username)"), matching

@@ -189,6 +189,16 @@ export interface SdkConfirmOptions {
 /** How a toast looks. */
 export type SdkSeverity = "success" | "info" | "warning" | "error";
 
+/** What a toast can carry besides its message. */
+export interface SdkToastOptions {
+  /**
+   * A model's id: the toast gets an Open button that leaves for the model's page, as `ui.openModel` does, and stays
+   * up longer so it can be reached. Pass it whenever the toast says a model was saved or changed. An older Thingport
+   * instance shows the message without the button.
+   */
+  openModel?: string;
+}
+
 /** A model a tool from the repository brings, as `toolModels()` lists it. */
 export interface SdkToolModel {
   /** What the tool's metadata calls it. */
@@ -644,10 +654,12 @@ export interface SdkUi {
    *
    * @param message What to say.
    * @param severity How it looks: `"info"` when left out.
+   * @param options `openModel`: a model's id, for an Open button on the toast that leaves for its page.
    * @example
-   * thingport.ui.toast(t("save.done"), "success");
+   * const model = await thingport.models.create({ name, files });
+   * thingport.ui.toast(t("save.done", { name: model.name }), "success", { openModel: model.id });
    */
-  toast(message: string, severity?: SdkSeverity): void;
+  toast(message: string, severity?: SdkSeverity, options?: SdkToastOptions): void;
   /**
    * Asks the user to confirm, in Thingport's own dialog.
    *
@@ -777,12 +789,19 @@ export interface SdkBase {
    * The script's own words, from its `locales/<code>.json` labels, in the user's language. A missing word falls back
    * to English key by key, and a key with no words anywhere comes back as itself, so the gap shows.
    *
+   * A number as `count` picks the plural form: the label has a key per form, `<key>.one`, `.two`, `.few`, `.many` and
+   * `.other`, and each language gives the ones its own rules use (English `one` and `other`, Russian `one`, `few`,
+   * `many` and `other`, the last for fractions such as 1.5), with `.other` standing in for a form it hasn't. Thingport
+   * before this returns the key itself: a script that must run on one picks the form there, as `Intl.PluralRules` names
+   * it, and asks for `<key>.<form>`, then `<key>.other`.
+   *
    * @group Words
    * @param key The label's key.
-   * @param vars Values for the `{name}` placeholders in it.
+   * @param vars Values for the `{name}` placeholders in it, and `count` to pick a plural form.
    * @returns The sentence.
    * @example
    * t("rings.ring", { n: 2 }); // "Ring 2", or "Žiedas 2" in Lithuanian
+   * t("bar.pieces", { count: 21 }); // "pieces", or "деталь" in Russian, where 21 takes the one form
    */
   t(key: string, vars?: Record<string, unknown>): string;
   /**

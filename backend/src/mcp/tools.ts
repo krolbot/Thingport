@@ -1,3 +1,5 @@
+import { LICENSE_ACTIONS, PICKABLE_LICENSE_IDS, type LicenseAction } from "../services/licenseCatalog";
+import { assertLicenseChoice, setOwnerLicense } from "../services/licenseService";
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import os from "node:os";
@@ -21,6 +23,7 @@ import {
 } from "../services/collectionService";
 import { getDashboardSummary } from "../services/dashboardService";
 import { printOutById } from "../services/printLoader";
+import type { PrintProfileOut } from "../services/printProfileService";
 import { listPrints, PRINT_SORT_MODES, SELF_AUTHOR_ID, type PrintListPage } from "../services/printQuery";
 import { search } from "../services/searchService";
 import { getImportTask, startImportTask, type ImportTaskState } from "../services/importTaskService";
@@ -134,8 +137,8 @@ const listModels: McpToolDefinition = {
   name: "list_models",
   title: "List models",
   description:
-    "List models, optionally filtered by tags, category, collection or author, newest first unless sorted " +
-    "otherwise. Filters combine: a model must match every one given.",
+    "List models, optionally filtered by tags, category, collection, author or what their licence allows, newest " +
+    "first unless sorted otherwise. Filters combine: a model must match every one given.",
   readOnly: true,
   inputSchema: {
     query: z.string().optional().describe("Only models matching these words, as in search_models."),
@@ -149,6 +152,13 @@ const listModels: McpToolDefinition = {
       .string()
       .optional()
       .describe(`Only models by this author (an id from a model's author), or '${SELF_AUTHOR_ID}' for the user's own.`),
+    license_allows: z
+      .array(z.enum(LICENSE_ACTIONS))
+      .optional()
+      .describe(
+        "Only models whose licence allows every one of these: share (pass the files on unchanged), remix (change it), " +
+          "commercial (commercial use, selling prints included). A model with no known licence never matches.",
+      ),
     sort: z
       .enum(PRINT_SORT_MODES)
       .optional()
@@ -165,6 +175,7 @@ const listModels: McpToolDefinition = {
         categoryIds: args.category_id ? [args.category_id as string] : [],
         collectionId: args.collection_id as string | undefined,
         authorId: args.author_id as string | undefined,
+        licenseAllows: args.license_allows as LicenseAction[] | undefined,
       },
       {
         sort: args.sort as (typeof PRINT_SORT_MODES)[number] | undefined,
@@ -176,12 +187,43 @@ const listModels: McpToolDefinition = {
   },
 };
 
+const minutes = (seconds: number | null) => (seconds == null ? null : Math.round(seconds / 60));
+
+/** A print profile as get_model gives it: plain names and units an assistant can quote. */
+function profileForAi(profile: PrintProfileOut) {
+  return {
+    name: profile.title,
+    made_by: profile.origin,
+    creator: profile.creator,
+    printer: profile.printer,
+    nozzle_mm: profile.nozzle_mm,
+    layer_height_mm: profile.layer_mm,
+    infill: profile.infill,
+    walls: profile.walls,
+    supports: profile.supports,
+    print_time_minutes: minutes(profile.seconds),
+    filament_grams: profile.grams,
+    filaments: profile.filaments,
+    plates: profile.plates.map((plate) => ({
+      number: plate.index,
+      name: plate.name,
+      print_time_minutes: minutes(plate.seconds),
+      filament_grams: plate.grams,
+    })),
+  };
+}
+
 const getModel: McpToolDefinition = {
   name: "get_model",
   title: "Get a model",
   description:
     "Everything about one model: its description, files, tags, category, author, collections, where it was " +
-    "imported from, and how often it was viewed and printed. Change it with edit_model.",
+    "imported from, and how often it was viewed and printed. A file that is one of the print profiles the model was " +
+    "imported with carries `print_profile`: its name, whether the designer or the community made it, the printer, " +
+    "settings, print time in minutes, filament in grams, and its build plates. `license` is its licence as its source " +
+    "lists it or its owner picked: its id (SPDX where there is one), name, link, what it allows of share (pass the " +
+    "files on unchanged), remix and commercial, whether it asks for credit or for remixes under the same licence, and " +
+    "any terms the site or creator added; null when nothing says. Change it with edit_model.",
   readOnly: true,
   inputSchema: { id: z.string().min(1).describe("The model's id, from search_models or list_models.") },
   async run(ctx, args) {
@@ -205,8 +247,26 @@ const getModel: McpToolDefinition = {
             links: print.author.links,
           }
         : null,
-      files: print.plates.map((plate) => ({ name: plate.filename, size_bytes: plate.size })),
+      files: print.plates.map((plate) => ({
+        name: plate.filename,
+        ...(plate.folder ? { folder: plate.folder } : {}),
+        size_bytes: plate.size,
+        ...(plate.profile ? { print_profile: profileForAi(plate.profile) } : {}),
+      })),
       supporting_file_count: print.supporting_file_count,
+      license: print.license
+        ? {
+            id: print.license.id,
+            name: print.license.name,
+            short_name: print.license.short,
+            url: print.license.url,
+            allows: print.license.allows,
+            requires_credit: print.license.requires.credit,
+            requires_same_license: print.license.requires.same_license,
+            terms: print.license.terms,
+            picked_by_owner: print.license.source === "user",
+          }
+        : null,
       image_count: print.preview_images.length,
       total_size_bytes: print.total_size,
       collections: memberships.map((m) => m.collection),
@@ -217,7 +277,9 @@ const getModel: McpToolDefinition = {
 const listCollections: McpToolDefinition = {
   name: "list_collections",
   title: "List collections",
-  description: "The user's collections, with how many models each holds, plus Favourites and Browsing History.",
+  description:
+    "The user's collections, with how many models each holds and the provider collections it syncs with (models " +
+    "added to any of those come in on their own), plus Favourites and Browsing History.",
   readOnly: true,
   inputSchema: {},
   async run(ctx) {
@@ -226,7 +288,10 @@ const listCollections: McpToolDefinition = {
       prisma.collection.findMany({
         where: { userId },
         orderBy: { createdAt: "desc" },
-        include: { _count: { select: { items: true } }, sync: { select: { provider: true, sourceUrl: true } } },
+        include: {
+          _count: { select: { items: true } },
+          syncs: { select: { provider: true, sourceUrl: true, title: true }, orderBy: { createdAt: "asc" } },
+        },
       }),
       prisma.print.count({ where: { userId, favoritedAt: { not: null } } }),
       prisma.print.count({ where: { userId, lastViewedAt: { not: null } } }),
@@ -241,7 +306,7 @@ const listCollections: McpToolDefinition = {
           description: c.description,
           tags: c.tags,
           model_count: c._count.items,
-          synced_with: c.sync ? { provider: c.sync.provider, url: c.sync.sourceUrl } : null,
+          synced_with: c.syncs.map((sync) => ({ provider: sync.provider, url: sync.sourceUrl, name: sync.title })),
         })),
       ],
     };
@@ -630,8 +695,8 @@ const editModel: McpToolDefinition = {
   name: "edit_model",
   title: "Edit a model",
   description:
-    "Change a model's details, as its page's Edit does: title, description, creator, tags, category and whether " +
-    "it's a favourite. Only what's given changes. Tags are free text: a tag the library hasn't used yet is " +
+    "Change a model's details, as its page's Edit does: title, description, creator, tags, category, licence and " +
+    "whether it's a favourite. Only what's given changes. Tags are free text: a tag the library hasn't used yet is " +
     "created by giving it. Pictures change with edit_model_images, files with add_model_files and remove_model_file.",
   readOnly: false,
   destructive: true,
@@ -656,6 +721,16 @@ const editModel: McpToolDefinition = {
       .optional()
       .describe("A category to file it in (an id from list_categories or create_category), or null for none."),
     favorite: z.boolean().optional().describe("Make it a favourite, or no longer one."),
+    license: z
+      .string()
+      .max(100)
+      .nullable()
+      .optional()
+      .describe(
+        `Its licence: one of ${PICKABLE_LICENSE_IDS.join(", ")}; "source" for the one its source site lists (read ` +
+          "again, replacing a licence picked before); or null for none, on a model with no source only. A licence " +
+          "picked here is never replaced by what the source lists.",
+      ),
   },
   async run(ctx, args) {
     const { userId } = ctx;
@@ -664,13 +739,15 @@ const editModel: McpToolDefinition = {
     const title = args.title as string | undefined;
     const categoryId = args.category_id as string | null | undefined;
     const tagArgs = [args.tags, args.add_tags, args.remove_tags] as (string[] | undefined)[];
-    const changes = [title, args.description, args.creator, categoryId, args.favorite, ...tagArgs];
+    const license = args.license as string | null | undefined;
+    const changes = [title, args.description, args.creator, categoryId, args.favorite, license, ...tagArgs];
     if (changes.every((value) => value === undefined)) throw new HttpError(400, "Nothing to change");
 
     // Checked before anything is written, so a bad category or a taken name doesn't leave the edit half done.
     if (categoryId && !(await prisma.category.count({ where: { id: categoryId, userId } }))) {
       throw new HttpError(400, "Category not found");
     }
+    if (license !== undefined) assertLicenseChoice(print, license);
     if (title !== undefined || categoryId !== undefined) {
       await uniqueModelName(
         userId,
@@ -694,6 +771,16 @@ const editModel: McpToolDefinition = {
       if (title !== undefined) changed.push("title");
       if (args.description !== undefined) changed.push("description");
       if (args.creator !== undefined) changed.push("creator");
+    }
+    if (license !== undefined) {
+      await setOwnerLicense(print, license);
+      void createLog({
+        userId,
+        action: "model_edited",
+        targetId: print.id,
+        details: { field: "license", name: print.name },
+      });
+      changed.push("license");
     }
     if (tagArgs.some(Boolean)) {
       const [replace, add = [], remove = []] = tagArgs;
@@ -735,6 +822,7 @@ export const MCP_FILE_MAX_BYTES = 10 * 1024 * 1024;
 type ModelFile = {
   id: string;
   name: string;
+  folder: string | null;
   kind: "plate" | "supporting" | "prepared";
   mime: string;
   size_bytes: number;
@@ -747,12 +835,17 @@ type ModelFile = {
 async function modelFiles(userId: string, modelId: string): Promise<ModelFile[]> {
   const print = await prisma.print.findFirst({
     where: { id: modelId, userId },
-    include: { plates: { orderBy: { position: "asc" } }, files: { orderBy: { createdAt: "asc" } } },
+    include: {
+      plates: { orderBy: { position: "asc" } },
+      // The LICENSE.txt Thingport writes says what get_model's `license` does.
+      files: { where: { role: { not: "LICENSE" } }, orderBy: { createdAt: "asc" } },
+    },
   });
   if (!print) throw new HttpError(404, "Print not found");
   const plates = print.plates.map((plate): ModelFile => ({
     id: plate.id,
     name: plate.filename,
+    folder: plate.folder,
     kind: "plate",
     mime: plate.mime || "application/octet-stream",
     size_bytes: plate.size,
@@ -762,6 +855,7 @@ async function modelFiles(userId: string, modelId: string): Promise<ModelFile[]>
   const others = print.files.map((file): ModelFile => ({
     id: file.id,
     name: file.filename,
+    folder: file.folder,
     kind: file.role === "PREPARED" ? "prepared" : "supporting",
     mime: file.mime || "application/octet-stream",
     size_bytes: file.size,
@@ -775,6 +869,7 @@ function fileOut(ctx: McpToolContext, file: ModelFile) {
   return {
     id: file.id,
     name: file.name,
+    folder: file.folder,
     kind: file.kind,
     mime: file.mime,
     size_bytes: file.size_bytes,
@@ -788,8 +883,10 @@ const listModelFiles: McpToolDefinition = {
   title: "List a model's files",
   description:
     "A model's files: its plates (the 3D files), supporting files and sliced print, each with the id get_model_file " +
-    "takes. api_path (on the server's own address) or download_url, when the server knows its address, opens with " +
-    "the same token as 'Authorization: Bearer' if it may read Model files.",
+    "takes. folder is the folder its source kept it in, levels joined by '/' (e.g. 'USB C version/Handles'; often the " +
+    "model's variants), or null; a name is unique within its folder, not the whole model. api_path (on the server's " +
+    "own address) or download_url, when the server knows its address, opens with the same token as " +
+    "'Authorization: Bearer' if it may read Model files.",
   readOnly: true,
   inputSchema: { model_id: z.string().min(1).describe("The model's id, from search_models or list_models.") },
   async run(ctx, args) {
@@ -1308,7 +1405,7 @@ const listToolsTool: McpToolDefinition = {
       note: access.canCreate
         ? undefined
         : access.canUse
-          ? "Users' own tools are off on this Thingport: an admin turns them on under Administration > Tools."
+          ? "Users' own tools are off on this Thingport instance: an admin turns them on under Administration > Tools."
           : "Tools aren't available to this user: an admin turns them on under Administration > Tools.",
       tools: tools.map((tool) => ({
         id: tool.id,

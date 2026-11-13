@@ -4,6 +4,8 @@ import { toPrintOut, type PrintOut } from "../dto";
 import { remoteOriginOut } from "../federation/remoteExplore";
 import { aiCategoryPaths, aiSuggestionOut, aiSuggestionsShown } from "./aiCategorizationService";
 import { aiDescriptionOut } from "./aiDescriptionService";
+import { printProfilesOut, profileFillRunning } from "./printProfileService";
+import { licenseFillRunning, licensePending, licenseReadFailed } from "./licenseService";
 import type { Author, Category, Plate, PreviewImage, Prisma, Print, PrintFile } from "@prisma/client";
 
 export type FullPrint = {
@@ -41,6 +43,8 @@ export async function printOutById(
   printId: string,
   scope: Prisma.PrintWhereInput = { userId },
 ): Promise<PrintOut> {
+  // Before its plates are read: see printProfilesOut.
+  const filling = profileFillRunning(printId);
   const [full, categoryPaths, suggestionsShown] = await Promise.all([
     loadFullPrint(userId, printId, scope),
     aiCategoryPaths(userId),
@@ -57,7 +61,22 @@ export async function printOutById(
     await aiSuggestionOut(userId, full.print.aiSuggestion, categoryPaths, suggestionsShown),
     await aiDescriptionOut(full.print),
   );
-  return { ...out, copied_from_remote: await remoteOriginOut(full.print.remoteSource) };
+  const profiles = await printProfilesOut(full.print, full.plates, filling);
+  const withProfiles = Object.keys(profiles.profiles).length
+    ? {
+        plates: out.plates.map((plate) => ({ ...plate, profile: profiles.profiles[plate.id] ?? null })),
+        profiles_pending: profiles.pending,
+        profiles_filling: profiles.filling,
+      }
+    : {};
+  return {
+    ...out,
+    ...withProfiles,
+    license_pending: licensePending(full.print),
+    license_filling: licenseFillRunning(full.print.id),
+    license_failed: !licenseFillRunning(full.print.id) && licenseReadFailed(full.print.id),
+    copied_from_remote: await remoteOriginOut(full.print.remoteSource),
+  };
 }
 
 function groupByPrintId<T extends { printId: string }>(rows: T[]): Map<string, T[]> {

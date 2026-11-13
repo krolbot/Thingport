@@ -1,4 +1,5 @@
 import type { Prisma } from "@prisma/client";
+import type { NotificationMessage } from "./notificationMessage";
 import { prisma } from "../db";
 
 export const NOTIFICATION_TYPES = [
@@ -11,6 +12,7 @@ export const NOTIFICATION_TYPES = [
   "system",
   "chat",
   "federation",
+  "share",
   "general",
 ] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
@@ -34,6 +36,8 @@ export const MAX_PAGE_SIZE = 50;
 const READ_RETENTION_DAYS = 30;
 export const UNREAD_RETENTION_DAYS = 90;
 const CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
+/** A system receipt per Bridge version someone has been told about (bridgeUpdateService). */
+export const BRIDGE_UPDATE_RECEIPT_PREFIX = "bridge-update-";
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export async function createNotification(
@@ -41,17 +45,21 @@ export async function createNotification(
   data: {
     type: NotificationType;
     title: string;
+    /** The same title for the app to translate. */
+    message?: NotificationMessage;
     body?: string | null;
     externalUrl?: string | null;
     internalPath?: string | null;
     group?: Prisma.InputJsonValue;
   },
+  db: Prisma.TransactionClient = prisma,
 ): Promise<void> {
-  await prisma.notification.create({
+  await db.notification.create({
     data: {
       userId,
       type: data.type,
       title: data.title,
+      ...(data.message ? { message: data.message } : {}),
       body: data.body ?? null,
       externalUrl: data.externalUrl ?? null,
       internalPath: data.internalPath ?? null,
@@ -122,9 +130,13 @@ export async function pruneNotifications(now = new Date()): Promise<number> {
       ],
     },
   });
-  // System notifications older than the unread limit are never sent again, so their receipts can go too.
+  // System notifications older than the unread limit are never sent again, so their receipts can go too. A Bridge
+  // update's would be sent again to someone still on an older Bridge, so it stays.
   await prisma.systemReceipt.deleteMany({
-    where: { createdAt: { lt: new Date(now.getTime() - UNREAD_RETENTION_DAYS * DAY_MS) } },
+    where: {
+      createdAt: { lt: new Date(now.getTime() - UNREAD_RETENTION_DAYS * DAY_MS) },
+      NOT: { systemId: { startsWith: BRIDGE_UPDATE_RECEIPT_PREFIX } },
+    },
   });
   return count;
 }

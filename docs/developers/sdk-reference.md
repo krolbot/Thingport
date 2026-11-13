@@ -244,15 +244,18 @@ thingport.t(key: string, vars?: Record<string, unknown>): string
 
 The script's own words, from its `locales/<code>.json` labels, in the user's language. A missing word falls back to English key by key, and a key with no words anywhere comes back as itself, so the gap shows.
 
-| Parameter | What it is                                  |
-| --------- | ------------------------------------------- |
-| `key`     | The label's key.                            |
-| `vars`    | Values for the `{name}` placeholders in it. |
+A number as `count` picks the plural form: the label has a key per form, `<key>.one`, `.two`, `.few`, `.many` and `.other`, and each language gives the ones its own rules use (English `one` and `other`, Russian `one`, `few`, `many` and `other`, the last for fractions such as 1.5), with `.other` standing in for a form it hasn't. Thingport before this returns the key itself: a script that must run on one picks the form there, as `Intl.PluralRules` names it, and asks for `<key>.<form>`, then `<key>.other`.
+
+| Parameter | What it is                                                                     |
+| --------- | ------------------------------------------------------------------------------ |
+| `key`     | The label's key.                                                               |
+| `vars`    | Values for the `{name}` placeholders in it, and `count` to pick a plural form. |
 
 **Returns:** The sentence.
 
 ```js
 t("rings.ring", { n: 2 }); // "Ring 2", or "Žiedas 2" in Lithuanian
+t("bar.pieces", { count: 21 }); // "pieces", or "деталь" in Russian, where 21 takes the one form
 ```
 
 ### `labels(where?)`
@@ -723,23 +726,25 @@ thingport.ui: ToolUi
 
 Thingport's own toast and confirmation, the collection picker, and closing the window.
 
-#### `ui.toast(message, severity?)`
+#### `ui.toast(message, severity?, options?)`
 
 ```ts
-thingport.ui.toast(message: string, severity?: SdkSeverity): void
+thingport.ui.toast(message: string, severity?: SdkSeverity, options?: SdkToastOptions): void
 ```
 
 Shows a short message in Thingport's own toast.
 
-| Parameter  | What it is                            |
-| ---------- | ------------------------------------- |
-| `message`  | What to say.                          |
-| `severity` | How it looks: `"info"` when left out. |
+| Parameter  | What it is                                                                           |
+| ---------- | ------------------------------------------------------------------------------------ |
+| `message`  | What to say.                                                                         |
+| `severity` | How it looks: `"info"` when left out.                                                |
+| `options`  | `openModel`: a model's id, for an Open button on the toast that leaves for its page. |
 
-See [`SdkSeverity`](#sdkseverity).
+See [`SdkSeverity`](#sdkseverity), [`SdkToastOptions`](#sdktoastoptions).
 
 ```js
-thingport.ui.toast(t("save.done"), "success");
+const model = await thingport.models.create({ name, files });
+thingport.ui.toast(t("save.done", { name: model.name }), "success", { openModel: model.id });
 ```
 
 #### `ui.confirm(options)`
@@ -1396,6 +1401,14 @@ How a toast looks.
 ```ts
 type SdkSeverity = "success" | "info" | "warning" | "error";
 ```
+
+### `SdkToastOptions`
+
+What a toast can carry besides its message.
+
+| Field        | Type     | What it is                                                                                                                                                                                                                                                                      |
+| ------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `openModel?` | `string` | A model's id: the toast gets an Open button that leaves for the model's page, as `ui.openModel` does, and stays up longer so it can be reached. Pass it whenever the toast says a model was saved or changed. An older Thingport instance shows the message without the button. |
 
 ### `SdkToolModel`
 

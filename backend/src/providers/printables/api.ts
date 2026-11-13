@@ -4,6 +4,7 @@ import { type ImportedAuthorInfo, type ImportedPageMetadata } from "../../servic
 import { htmlToMarkdown } from "../../services/descriptionMarkdown";
 import type { ProviderCollectionCard } from "../../services/providerCollectionCard";
 import { asCount, asRecord, asText, recordsOf, type TrendingModel } from "../../services/trendingModel";
+import { printablesLicenseFrom } from "./license";
 import manifest from "./manifest.generated";
 import { printablesCollectionUrl, printablesModelUrl, printablesUserUrl, urls } from "./urls.generated";
 export { parsePrintablesCollectionUrl, parsePrintablesLikesUrl, parsePrintablesModelUrl } from "./urls.generated";
@@ -79,7 +80,8 @@ const MODEL_QUERY = `
       images { filePath }
       tags { name }
       category { id name }
-      stls { id name }
+      stls { id name folder }
+      license { id name abbreviation content }
     }
   }
 `;
@@ -113,7 +115,8 @@ function extractAuthor(user: Record<string, unknown>): ImportedAuthorInfo | null
   };
 }
 
-export type PrintablesPlateFile = { name: string; id: string };
+/** `folder` is the one the designer put it in on the model's Files tab, or null. */
+export type PrintablesPlateFile = { name: string; id: string; folder: string | null };
 export type PrintablesGalleryImage = { name: string; url: string };
 
 export type PrintablesModelResolution = {
@@ -173,8 +176,15 @@ export async function resolvePrintablesModel(modelId: string): Promise<Printable
   const plateFiles: PrintablesPlateFile[] = Array.isArray(model.stls)
     ? model.stls
         .filter((f): f is Record<string, unknown> => isRecord(f) && typeof f.name === "string" && f.id != null)
-        .map((f) => ({ name: f.name as string, id: String(f.id) }))
+        .map((f) => ({
+          name: f.name as string,
+          id: String(f.id),
+          folder: typeof f.folder === "string" && f.folder.trim() ? f.folder : null,
+        }))
     : [];
+
+  const license = printablesLicenseFrom(model.license);
+  if (license !== undefined) meta.license = license;
 
   return { meta, plateFiles, galleryImages };
 }

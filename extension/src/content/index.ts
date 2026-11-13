@@ -1,21 +1,23 @@
 // Content script entry point (MakerWorld, Thingiverse, Printables, and the optional sites in optionalSites.ts once
-// turned on). Network calls go through the background (see runtime.ts). MakerWorld's normalized download and its
+// turned on). Network calls go through the background (see runtime.ts). MakerWorld's adapted download and its
 // download resolution for the import button are wired in here, as the page's offline features and the button are
 // every provider's.
 
 import type { ImportStatus } from "../shared/api";
 import { listen, send, type ContentMessages } from "../shared/messages";
-import { CONFIG_CHANGE_KEYS } from "../shared/storage";
+import { bubbleLookOf } from "../shared/bubble";
+import { CONFIG_CHANGE_KEYS, STORAGE_KEYS } from "../shared/storage";
 import { classifyUrl } from "../shared/urls";
-import { setContext, type LibraryState } from "./context";
+import { libraryStateOf, setContext, type LibraryState } from "./context";
 import {
   isMakerworldBlockingError,
   resolveMakerworldDownloadUrl,
   resolveMakerworldProfileDownload,
 } from "../providers/makerworld/downloadResolver";
-import { offerNormalizedDownload, unmountNormalizedDownload } from "../providers/makerworld/normalizedDownload";
+import { offerAdaptedDownload, unmountAdaptedDownload } from "../providers/makerworld/adaptedDownload";
 import { mountJobOverlay, mountPausedJobOverlay } from "./overlays";
 import { loadPanel } from "./panels";
+import { profileGap } from "./profiles";
 import { captureProviderAccount } from "./providerAccount";
 import { providerEnabled } from "./providerSettings";
 import { CONTENT_MODULES } from "../providers/content";
@@ -29,7 +31,16 @@ import {
   WITHHELD_SCRIPT_EXPLAINER,
   WITHHELD_SCRIPT_NOTE_HTML,
 } from "./scriptNote";
-import { mountFab, mountFabNote, mountHost, mountPanel, renderPanel, setPanelOpen, unmountHost } from "./shell";
+import {
+  mountFab,
+  mountFabNote,
+  mountHost,
+  mountPanel,
+  renderPanel,
+  setBubbleLook,
+  setPanelOpen,
+  unmountHost,
+} from "./shell";
 import { manifestOf, providerOfHost } from "../providers/index.generated";
 
 declare global {
@@ -56,7 +67,7 @@ function reportProviderSite(): void {
 
 function unmount(): void {
   closeSetupModal();
-  unmountNormalizedDownload();
+  unmountAdaptedDownload();
   unmountHost();
   setContext(null);
 }
@@ -82,6 +93,8 @@ async function init(): Promise<void> {
     reportTabIconState(false);
     return;
   }
+  // Before any bubble is mounted, so it comes up in its own style and corner.
+  setBubbleLook(stateRes.data.bubble);
   // On every page, importable or not: the header shows who's signed in everywhere.
   if (stateRes.data.configured) captureProviderAccount(location.hostname);
 
@@ -99,7 +112,7 @@ async function init(): Promise<void> {
     manifestOf(classification.provider).capabilities.bambuProjects &&
     stateRes.data.offlineFeatures.normalizeMakerworld
   ) {
-    void offerNormalizedDownload(url, stateRes.data.configured, isStale);
+    void offerAdaptedDownload(url, stateRes.data.configured, isStale);
   }
 
   // Not set up: still show a grayed-out icon on importable pages so the extension is discoverable.
@@ -162,21 +175,20 @@ async function init(): Promise<void> {
   }
 
   let library: LibraryState | null = null;
+  // Of the page's print profiles, how many the library's model hasn't got, when the page's own is on it.
+  let missingProfiles = 0;
   if (classification.kind === "single") {
     try {
       const status = await api<ImportStatus>("GET", `/import/status?url=${encodeURIComponent(url)}`);
       if (isStale()) return;
-      const gaps = status.gaps ?? [];
-      if (status.already_imported) {
-        // Nothing to import, so the bubble only shows while there are details to fill in.
-        if (!gaps.length || !status.print_id) {
-          reportTabIconState(false);
-          return;
-        }
-        library = { state: "imported", printId: status.print_id, gaps };
-      } else if (status.state === "profile_missing" || status.state === "profile_unknown") {
-        library = { state: status.state, printId: status.print_id ?? null, gaps };
-      }
+      // Which of the page's print profiles the library's model lacks, for a model it has.
+      const gap =
+        status.already_imported && status.print_id
+          ? await profileGap(classification.provider, url, status.imported_profile_ids)
+          : "none";
+      if (isStale()) return;
+      missingProfiles = gap && gap !== "none" ? gap.all.length : 0;
+      library = libraryStateOf(status, gap);
     } catch {
       // Show the icon anyway; the panel surfaces the real error.
     }
@@ -194,12 +206,17 @@ async function init(): Promise<void> {
   const root = mountHost();
   const togglePanel = mountPanel(root, () => void loadPanel());
   mountFab(root, {
-    variant: library ? "in-library" : undefined,
+    // A plus while there's something to add to the library's model, a tick once there's nothing.
+    variant: !library ? undefined : library.state === "complete" ? "complete" : "in-library",
     label: !library
       ? "Import to Thingport"
-      : library.state === "imported"
-        ? "Fetch this model's missing details into Thingport"
-        : "Add this print profile to Thingport",
+      : library.state === "complete"
+        ? "Imported to Thingport: open it there"
+        : missingProfiles
+          ? `Add the ${missingProfiles} missing print profile${missingProfiles === 1 ? "" : "s"} to Thingport`
+          : library.state === "imported"
+            ? "Fetch this model's missing details into Thingport"
+            : "Add this print profile to Thingport",
     onClick: togglePanel,
   });
   reportTabIconState(true);
@@ -251,7 +268,15 @@ if (!window.thingportGrabInjected) {
   window.thingportGrabInjected = true;
 
   chrome.storage.onChanged.addListener((changes, areaName) => {
-    if (areaName !== "local" || !CONFIG_CHANGE_KEYS.some((key) => key in changes)) return;
+    if (areaName !== "local") return;
+    // A new look in the popup's Appearance tab moves the bubble showing now, its panel open or not.
+    if (STORAGE_KEYS.bubbleStyle in changes || STORAGE_KEYS.bubblePlace in changes) {
+      void chrome.storage.local.get([STORAGE_KEYS.bubbleStyle, STORAGE_KEYS.bubblePlace]).then(
+        (stored) => setBubbleLook(bubbleLookOf(stored)),
+        () => undefined,
+      );
+    }
+    if (!CONFIG_CHANGE_KEYS.some((key) => key in changes)) return;
     unmount();
     void init();
   });

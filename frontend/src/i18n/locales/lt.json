@@ -360,7 +360,7 @@
           "writeConfirmTitle": "Leisti asistentui naudoti „{{tool}}“?",
           "writeConfirmMessage": "Šis įrankis keičia jūsų biblioteką. Su šiuo raktu prijungtas asistentas galės jį naudoti kiekvieną kartą jūsų neklausdamas. Jis niekada netrina modelių.",
           "writeConfirm": "Įjungti",
-          "adminOff": "Administratorius šiame Thingport išjungė MCP.",
+          "adminOff": "Administratorius šiame Thingport serveryje išjungė MCP.",
           "adminReadOnly": "Administratorius leidžia tik skaitančius įrankius.",
           "copyCommand": "Kopijuoti komandą",
           "reads": "Skaito biblioteką",
@@ -446,7 +446,10 @@
       },
       "language": {
         "heading": "Kalba",
-        "subtitle": "Pasirinkite kalbą, naudojamą visame Thingport."
+        "subtitle": "Pasirinkite kalbą, naudojamą visame Thingport.",
+        "search": "Ieškoti kalbų",
+        "noMatch": "Tokios kalbos nėra",
+        "translated": "Išversta {{percent}}%"
       },
       "slicer": {
         "failed": "Nepavyko išsaugoti -- bandykite dar kartą.",
@@ -545,7 +548,26 @@
       "emptyUnread": "Viskas perskaityta.",
       "emptySystem": "Thingport pranešimų nėra.",
       "clearUnreadConfirm": "Ištrinti visus neperskaitytus pranešimus? To nebus galima atšaukti.",
-      "clearSystemConfirm": "Ištrinti visus sistemos pranešimus? Jie nebus siunčiami iš naujo. To nebus galima atšaukti."
+      "clearSystemConfirm": "Ištrinti visus sistemos pranešimus? Jie nebus siunčiami iš naujo. To nebus galima atšaukti.",
+      "messages": {
+        "importFailed": "Nepavyko importuoti modelio",
+        "alreadyInLibrary": "„{{name}}“ jau yra jūsų bibliotekoje",
+        "imported": "Importuotas „{{name}}“",
+        "profileAdded": "Prie „{{name}}“ pridėtas dar vienas spausdinimo profilis",
+        "importedModels_one": "Importuotas {{count}} modelis",
+        "importedModels_few": "Importuoti {{count}} modeliai",
+        "importedModels_many": "Importuota {{count}} modelio",
+        "importedModels_other": "Importuota {{count}} modelių",
+        "importRun_one": "Importuota {{done}} iš {{count}} modelio",
+        "importRun_few": "Importuota {{done}} iš {{count}} modelių",
+        "importRun_many": "Importuota {{done}} iš {{count}} modelio",
+        "importRun_other": "Importuota {{done}} iš {{count}} modelių",
+        "importRunFrom_one": "{{site}}: importuota {{done}} iš {{count}} modelio",
+        "importRunFrom_few": "{{site}}: importuota {{done}} iš {{count}} modelių",
+        "importRunFrom_many": "{{site}}: importuota {{done}} iš {{count}} modelio",
+        "importRunFrom_other": "{{site}}: importuota {{done}} iš {{count}} modelių",
+        "bridgeUpdate": "Yra nauja Thingport Bridge versija {{version}}"
+      }
     },
     "search": {
       "placeholder": "Ieškoti modelių, kolekcijų, žymų…",
@@ -909,19 +931,29 @@
     "dashboard": {
       "loadError": "Nepavyko įkelti valdymo skydo.",
       "seeMore": "Rodyti daugiau",
-      "viewCount": "{{count}} peržiūrų",
-      "printCount": "{{count}} spausdinimų",
       "collectionCount": {
-        "label": "Kolekcijos"
+        "label": "Kolekcijos",
+        "count_one": "Kolekcija",
+        "count_few": "Kolekcijos",
+        "count_other": "Kolekcijų"
       },
       "modelCount": {
-        "label": "Modeliai"
+        "label": "Modeliai",
+        "count_one": "Modelis",
+        "count_few": "Modeliai",
+        "count_other": "Modelių"
       },
       "authorCount": {
-        "label": "Unikalūs autoriai"
+        "label": "Unikalūs autoriai",
+        "count_one": "Unikalus autorius",
+        "count_few": "Unikalūs autoriai",
+        "count_other": "Unikalių autorių"
       },
       "categoryCount": {
-        "label": "Kategorijos ir aplankai"
+        "label": "Kategorijos ir aplankai",
+        "count_one": "Kategorija ar aplankas",
+        "count_few": "Kategorijos ir aplankai",
+        "count_other": "Kategorijų ir aplankų"
       },
       "topViewed": {
         "title": "Dažniausiai žiūrimi modeliai",
@@ -934,12 +966,18 @@
       "topAuthors": {
         "title": "Populiariausi autoriai",
         "empty": "Autorių dar nėra — importuokite modelį, kad pamatytumėte populiariausius autorius čia.",
-        "modelCount": "{{count}} modelių"
+        "modelCount_one": "{{count}} modelis",
+        "modelCount_few": "{{count}} modeliai",
+        "modelCount_many": "{{count}} modelio",
+        "modelCount_other": "{{count}} modelių"
       },
       "topProviders": {
         "title": "Populiariausi šaltiniai",
         "empty": "Modelių dar nėra.",
-        "modelCount": "{{count}} modelių"
+        "modelCount_one": "{{count}} modelis",
+        "modelCount_few": "{{count}} modeliai",
+        "modelCount_many": "{{count}} modelio",
+        "modelCount_other": "{{count}} modelių"
       },
       "recentlyAdded": {
         "title": "Naujausiai pridėti",
@@ -1216,7 +1254,7 @@
         "noExport": "Skripte nėra export default funkcijos.",
         "failed": "{{name}} sustojo dėl klaidos",
         "removed": "Šis valdiklis pašalintas.",
-        "off": "Šiame Thingport pasirinktiniai valdikliai išjungti.",
+        "off": "Šiame Thingport serveryje pasirinktiniai valdikliai išjungti.",
         "title": "Pasirinktiniai valdikliai",
         "tabs": {
           "mine": "Mano",
@@ -1245,7 +1283,7 @@
         "installed": "„{{name}}“ įdiegtas",
         "isInstalled": "Įdiegtas",
         "retry": "Bandyti dar kartą",
-        "communityError": "Nepavyko įkelti bendruomenės valdiklių. Patikrinkite, ar šis Thingport pasiekia GitHub.",
+        "communityError": "Nepavyko įkelti bendruomenės valdiklių. Patikrinkite, ar šis Thingport serveris pasiekia GitHub.",
         "communityEmpty": "Bendruomenės valdiklių dar nėra. Būkite pirmas: žr. „Kurti ir dalintis“.",
         "reaches_one": "Pasiekia {{count}} serverį",
         "reaches_other": "Pasiekia {{count}} serverių",
@@ -1343,7 +1381,7 @@
           "publish1": "Atsisiųskite valdiklį skiltyje „Mano“ (⋮, tada „Atsisiųsti publikavimui“).",
           "publish2": "Sukurkite Thingport saugyklos kopiją (fork) ir išskleiskite jį į aplanką <folder>community-widgets</folder>.",
           "publish3": "Įrašykite aplanko pavadinimą į community-widgets/index.json ir aprašykite valdiklį README.md faile.",
-          "publish4": "Atidarykite pull request. Kai jis bus priimtas, kiekvienas Thingport galės jį įdiegti.",
+          "publish4": "Atidarykite pull request. Kai jis bus priimtas, kiekvienas Thingport serveris galės jį įdiegti.",
           "guide": "Skaityti visą vadovą"
         },
         "ai": {
@@ -1377,7 +1415,15 @@
           "help": "Žodžiai, kuriuos rodo tavo valdiklis — po failą kiekvienai kalbai. Scenarijus jų prašo pagal raktą su t(\"raktas\"), tad jie nesimaišo su logika ir išverčiami jos nekeičiant.",
           "empty": "Tavo valdiklis dar neturi užrašų. Rodomus žodžius laikyk po failą kiekvienai kalbai, o scenarijus jų prašys pagal raktą su t(\"raktas\") — vertėjui niekada nereikės atverti kodo."
         }
-      }
+      },
+      "viewCount_one": "{{count}} peržiūra",
+      "viewCount_few": "{{count}} peržiūros",
+      "viewCount_many": "{{count}} peržiūros",
+      "viewCount_other": "{{count}} peržiūrų",
+      "printCount_one": "{{count}} spausdinimas",
+      "printCount_few": "{{count}} spausdinimai",
+      "printCount_many": "{{count}} spausdinimo",
+      "printCount_other": "{{count}} spausdinimų"
     },
     "adminSettings": {
       "providers": {
@@ -1432,14 +1478,16 @@
         "bulkDisableTitle_many": "Išjungti {{count}} tiekėjo?",
         "bulkDisableTitle_other": "Išjungti {{count}} tiekėjų?",
         "bulkDisableMessage": "Niekas negalės importuoti iš {{names}}, kol jie vėl nebus įjungti: nuorodos, Thingport Grab ir importų eilė bus atmetamos, jų kolekcijų sinchronizacija sustabdyta, o foniniai darbai juos praleis. Jau importuoti modeliai lieka.",
-        "turnedOn_one": "{{name}} įjungtas",
+        "turnedOn_one": "Įjungtas {{count}} tiekėjas",
         "turnedOn_few": "Įjungti {{count}} tiekėjai",
         "turnedOn_many": "Įjungta {{count}} tiekėjo",
         "turnedOn_other": "Įjungta {{count}} tiekėjų",
-        "turnedOff_one": "{{name}} išjungtas",
+        "turnedOff_one": "Išjungtas {{count}} tiekėjas",
         "turnedOff_few": "Išjungti {{count}} tiekėjai",
         "turnedOff_many": "Išjungta {{count}} tiekėjo",
-        "turnedOff_other": "Išjungta {{count}} tiekėjų"
+        "turnedOff_other": "Išjungta {{count}} tiekėjų",
+        "turnedOnNamed": "{{name}} įjungtas",
+        "turnedOffNamed": "{{name}} išjungtas"
       },
       "storageSettings": {
         "heading": "Saugykla"
@@ -1709,8 +1757,19 @@
           "confirmTitle": "Tikrinti esamus failus?",
           "confirmMessage": "Thingport peržiūrės visus išsaugotus failus ir vienodus pakeis klonais. Veikia fone, o didelėje bibliotekoje gali užtrukti.",
           "confirmAction": "Tikrinti",
-          "failed": "Nepavyko pradėti tikrinimo. Bandykite dar kartą."
+          "failed": "Nepavyko pradėti tikrinimo. Bandykite dar kartą.",
+          "result_few": "Sukloniuoti {{count}} failai, atlaisvinta iki {{size}}"
         }
+      },
+      "licenseFiles": {
+        "heading": "Licencijų failai",
+        "subtitle": "Laikyti kiekvieno modelio licenciją šalia jo failų.",
+        "label": "Rašyti LICENSE.txt šalia modelio failų",
+        "help": "Kiekvienam modeliui su licencija Thingport laiko LICENSE.txt jo aplanke: kas jį sukūrė, iš kur jis, jo licencija ir ką ji leidžia, bei autorystės eilutė. Failas perrašomas pasikeitus licencijai, keliauja ir ištrinamas kartu su modeliu. Išjungus šie failai pašalinami; ZIP atsisiuntimuose jis būna bet kuriuo atveju.",
+        "on": "Kiekvieno licencijuoto modelio aplanke yra jo LICENSE.txt.",
+        "off": "LICENSE.txt nerašomas; ZIP atsisiuntimuose jis vis tiek būna.",
+        "failed": "Nepavyko išsaugoti LICENSE.txt nustatymo. Bandykite dar kartą.",
+        "loadFailed": "Nepavyko įkelti LICENSE.txt nustatymo."
       },
       "consume": {
         "heading": "Importavimo aplankas",
@@ -1737,6 +1796,7 @@
         "closedHelp": "Prisijungimo puslapyje nėra registracijos, o naujas paskyras galima sukurti tik gavus kvietimą.",
         "inviteButton": "Kviesti naudotojus",
         "inviteHelp": "El. paštu išsiunčia registracijos nuorodą. Ją vieną kartą gali panaudoti tik vienas adresas, 7 dienas.",
+        "inviteLinkHelp": "Pateikia registracijos nuorodą, kurią išsiųsite patys. Ją vieną kartą gali panaudoti tik vienas adresas, 7 dienas.",
         "failed": "Nepavyko atnaujinti registracijos nustatymų",
         "invite": {
           "title": "Pakviesti naudotoją",
@@ -1748,7 +1808,16 @@
           "sent_one": "Kvietimas išsiųstas adresu {{email}}. Nuoroda galios {{count}} dieną.",
           "sent_few": "Kvietimas išsiųstas adresu {{email}}. Nuoroda galios {{count}} dienas.",
           "sent_other": "Kvietimas išsiųstas adresu {{email}}. Nuoroda galios {{count}} dienų.",
-          "failed": "Nepavyko išsiųsti kvietimo"
+          "failed": "Nepavyko išsiųsti kvietimo",
+          "linkTitle": "Pakviesti naudotojus",
+          "linkDescription": "El. paštas nenustatytas, todėl kiekvieną nuorodą išsiunčiate patys. Ja vieną kartą, 7 dienas, gali pasinaudoti tik tas adresas.",
+          "create": "Sukurti nuorodą",
+          "creating": "Kuriama...",
+          "worksUntil": "Galioja iki {{date}}",
+          "copyLink": "Kopijuoti nuorodą",
+          "copyLinkFor": "Kopijuoti nuorodą adresui {{email}}",
+          "copied": "Nukopijuota",
+          "copyFailed": "Čia nepavyko nukopijuoti. Nuoroda pažymėta: spauskite Ctrl+C arba ⌘C."
         }
       },
       "previews": {
@@ -1899,11 +1968,11 @@
         "compare": "Palyginti",
         "accept": "Priimti",
         "reject": "Atmesti",
-        "acceptDone_one": "Aprašymas atnaujintas.",
+        "acceptDone_one": "Atnaujintas {{count}} aprašymas.",
         "acceptDone_few": "Atnaujinti {{count}} aprašymai.",
         "acceptDone_many": "Atnaujinta {{count}} aprašymo.",
         "acceptDone_other": "Atnaujinta {{count}} aprašymų.",
-        "rejectDone_one": "Pasiūlymas atmestas.",
+        "rejectDone_one": "Atmestas {{count}} pasiūlymas.",
         "rejectDone_few": "Atmesti {{count}} pasiūlymai.",
         "rejectDone_many": "Atmesta {{count}} pasiūlymo.",
         "rejectDone_other": "Atmesta {{count}} pasiūlymų.",
@@ -2158,6 +2227,7 @@
           "tags_merged": "Žymos sujungtos",
           "mcp_access_changed": "Pakeitė MCP prieigą",
           "file_reuse_changed": "Pakeitė, kaip saugomi vienodi failai",
+          "license_files_changed": "Pakeitė, ar rašomi LICENSE.txt failai",
           "file_reuse_backfill_started": "Pradėjo tikrinti išsaugotus failus dėl vienodo turinio",
           "custom_widgets_changed": "Pakeista, kurie pasirinktiniai valdikliai leidžiami",
           "tool_installed": "Įrankis įdiegtas",
@@ -2177,7 +2247,8 @@
           "federation_disconnected": "Atjungtas serveris",
           "federation_blocked": "Užblokuotas serveris",
           "federation_unblocked": "Atblokuotas serveris",
-          "federation_user_requested": "Paprašyta pasiekti ką nors kitur"
+          "federation_user_requested": "Paprašyta pasiekti ką nors kitur",
+          "collection_sharing_changed": "Pakeistas kolekcijos bendrinimas"
         },
         "authorsLinked": "Susieta modelių: {{count}}",
         "descriptionsRefetched": "{{email}} — pakeista aprašymų: {{updated}} iš {{total}}",
@@ -2206,6 +2277,8 @@
         "socialOff": "Išjungta",
         "federationOn": "Įjungta",
         "federationOff": "Išjungta",
+        "licenseFilesOn": "Įjungta",
+        "licenseFilesOff": "Išjungta",
         "chatsOn": "Pokalbiai įjungti",
         "chatsOff": "Pokalbiai išjungti"
       },
@@ -2294,6 +2367,7 @@
         "kind": {
           "plate": "Modelio failas",
           "file": "Papildomas failas",
+          "license": "Licencija",
           "image": "Paveikslėlis",
           "description": "Aprašymo paveikslėlis",
           "thumb": "Miniatiūra",
@@ -2628,35 +2702,48 @@
             "unreachable": "Nepasiekiamas",
             "localHelp": "Šį serverį pasiekia tik jūsų tinklo ar VPN serveriai. Prie interneto serverių vis tiek galite prisijungti: jūsų serveris laiko atvirą ryšį su jais.",
             "publicHelp": "Interneto serveriai jį pasiekia, jei leidžia jūsų maršrutizatorius ar tarpinis serveris. Tai patvirtina jį pasiekęs partneris.",
-            "unreachableHelp": "Kiti serveriai jo nepasiekia viešu adresu. Patikrinkite dar kartą tai sutvarkę."
+            "unreachableHelp": "Kiti serveriai jo nepasiekia viešu adresu. Patikrinkite dar kartą tai sutvarkę.",
+            "linksOnly": "Tik per ryšius",
+            "linksOnlyHelp": "Kiti serveriai jo nepasiekia viešu adresu, todėl jis laiko atvirą ryšį su kiekvienu, prie kurio jungiasi. Patikrinkite dar kartą tai sutvarkę."
           },
           "check": {
             "intro": "Pirmiausia – ar kiti Thingport serveriai galėtų pasiekti šį.",
             "checking": "Tikrinama…",
             "failed": "Nepavyko patikrinti.",
-            "notReachableNow": "Kiti serveriai ką tik negalėjo pasiekti šio serverio jo viešu adresu. Pataisykite adresą ir patikrinkite dar kartą.",
             "urlSet": "Viešas adresas nustatytas",
             "urlNotSet": "Viešas adresas nenustatytas",
             "leadsHere": "Jis veda atgal į šį serverį",
             "leadsHereDetail": "Atsakė šio serverio paslaptimi",
             "leadsElsewhere": "Jis neveda į šį serverį",
             "leadsElsewhereDetail": "Tuo adresu atsako kažkas kita",
+            "leadsElsewhereAnswered": "Ten atsako kažkas kita: {{answer}}",
             "noLoopback": "Iš čia neatsakė",
             "noLoopbackDetail": "Kai kurie maršrutizatoriai nepasiekia savo viešo adreso",
-            "noAnswer": "Neatsako",
-            "noAnswerDetail": "Per 8 sekundes niekas neatsakė",
+            "failure": {
+              "reserved": "Tai šis kompiuteris arba rezervuotas diapazonas",
+              "notFound": "Jo vardas čia nerandamas",
+              "notFoundDetail": "Šis serveris neranda {{host}}",
+              "timeout": "Neatsako",
+              "timeoutDetail": "Per 8 sekundes niekas neatsakė",
+              "refused": "Jungtis atmesta",
+              "refusedDetail": "{{host}} niekas nepriima jungčių",
+              "certificate": "Jo sertifikatu nepasitikima",
+              "redirect": "Atsako peradresavimu",
+              "failed": "Nepavyko pasiekti"
+            },
             "addressLocal": "Adresas yra jūsų vietiniame tinkle",
             "addressPublic": "Adresas viešas",
-            "addressSkipped": "Adresas netikrintas",
             "localTitle": "Tik vietinis tinklas",
             "localText": "Prisijungti gali jūsų tinklo ar VPN serveriai. Interneto serveriai šio nepasiekia, bet prie jų vis tiek galite prisijungti: jūsų serveris laiko atvirą ryšį.",
             "publicTitle": "Pasiekiamas, dar nepatvirtinta",
             "publicText": "Interneto serveriai turėtų jį pasiekti, jei leidžia jūsų maršrutizatorius ar tarpinis serveris. Tai patvirtins pirmasis sujungimas.",
             "unverifiedTitle": "Viešas, bet sau neatsakė",
             "unverifiedText": "Interneto serveriai vis tiek gali jį pasiekti. Paaiškės per pirmąjį sujungimą.",
+            "linksOnlyTitle": "Tik per ryšius",
+            "linksOnlyText": "Kiti serveriai šio nepasiekia viešu adresu. Jis vis tiek gali jungtis prie tų, kuriuos pasiekia, laikydamas atvirą ryšį su kiekvienu.",
             "unreachableTitle": "Nepasiekiamas",
             "notSetText": "Pirmiausia nustatykite šio serverio viešą adresą: juo jį pasiekia kiti serveriai.",
-            "unreachableText": "Kiti serveriai jo irgi nepasiektų. Patikrinkite viešą adresą arba tarpinį serverį prieš Thingport.",
+            "reservedText": "Jo viešas adresas yra šis kompiuteris arba rezervuotas diapazonas, prie kurio kiti serveriai niekada nesijungia: kiekvienam iš jų localhost reiškia jį patį. Nustatykite adresą, kurį jis turi jūsų tinkle.",
             "publicUrlButton": "Viešas adresas",
             "youApprove": "Kiekvieną serverį patvirtinate prieš jam prisijungiant ir bet kada galite jį pristabdyti ar užblokuoti.",
             "helpApprove": "Kitų serverių prašymai laukia administratoriaus čia, kaip ir jūsų naudotojų prašymai pasiekti ką nors kitur.",
@@ -2676,6 +2763,10 @@
             "matches": "Raktai sutampa",
             "linkSuggestedTitle": "{{name}} nepasiekia jūsų serverio",
             "linkSuggestedText": "Jūsų serveris pasiekiamas tik jūsų tinkle, todėl jis pats laiko atvirą ryšį su {{name}}. Kol jis veikia, viskas veikia abiem kryptimis.",
+            "linkUnreachableTitle": "{{name}} nepasiekia jūsų serverio",
+            "linkUnreachableText": "Jūsų serverio viešu adresu niekas nepasiekia, todėl jis pats laiko atvirą ryšį su {{name}}. Kol jis veikia, viskas veikia abiem kryptimis.",
+            "linkUnconfirmedTitle": "{{name}} gali nepasiekti jūsų serverio",
+            "linkUnconfirmedText": "Iš interneto jūsų serverio dar niekas nepasiekė, todėl dėl viso pikto jis pats laiko atvirą ryšį su {{name}}. Kol jis veikia, viskas veikia abiem kryptimis.",
             "linkOnTitle": "Laikomas atviras ryšys su {{name}}",
             "linkOnText": "Kai {{name}} nepasiekia jūsų serverio: jūsų serveris jungiasi pats, ir kol jis veikia, viskas veikia abiem kryptimis.",
             "linkOffTitle": "{{name}} jūsų serverį pasiekia tiesiogiai",
@@ -2691,6 +2782,8 @@
           },
           "errors": {
             "invalid_address": "Tai ne serverio adresas.",
+            "no_public_url": "Pirmiausia nustatykite šio serverio viešą adresą: juo jį pažįsta kiti serveriai.",
+            "reserved_address": "Šio serverio viešas adresas yra šis kompiuteris arba rezervuotas diapazonas. Nustatykite adresą, kurį jis turi jūsų tinkle.",
             "same_instance": "Tai šis serveris.",
             "unreachable": "Tas serveris neatsakė. Ar adresas teisingas ir ar šis serveris jį pasiekia? Jei jis kieno nors namų tinkle, paprašykite jo administratoriaus prisijungti prie jūsų.",
             "not_thingport": "Tai ne Thingport serveris.",
@@ -2865,6 +2958,16 @@
           "step2": "Pašalinkite Gatekeeper karantino žymą -- atsisiųsti failai automatiškai pažymimi karantinu.",
           "step3": "Įdiekite jį. Tai nukopijuos programą į ~/Applications ir užregistruos thingport:// nuorodą.",
           "note": "Jei „macOS“ vis tiek atsisako jį paleisti, atidarykite System Settings -> Privacy & Security ir leiskite jį ten."
+        },
+        "update": {
+          "title": "Atnaujinate?",
+          "text": "Įdiekite naują versiją tais pačiais veiksmais. Senosios šalinti nereikia, o jūsų nustatymai išliks.",
+          "macosQuit": "Diegimas taip pat uždaro veikiantį Bridge, todėl kita nuoroda atsidarys naujoje versijoje.",
+          "checkVersion": "Patikrinti versiją",
+          "hideVersion": "Slėpti versijos patikrą",
+          "inPowerShell": "PowerShell lange:",
+          "inTerminal": "Terminale:",
+          "uninstall": "Kaip pašalinti"
         }
       }
     },
@@ -2981,6 +3084,15 @@
         "failed": "Nepavyko išsaugoti modelių kortelių pasirinkimo.",
         "help": "Ką modelių kortelės rodo pirmiausia. Nuotraukos: paveikslėliai, su kuriais modelis atkeliavo, arba 3D vaizdas, jei jų nėra. 3D vaizdai: kiekvieno modelio vaizdas jūsų atvaizdo spalva arba jo nuotraukos, jei failo nupiešti nepavyksta."
       },
+      "printProfiles": {
+        "heading": "Spausdinimo profiliai",
+        "help": "Kaip rodomi modelių, importuotų su spausdinimo profiliais, profiliai: sąrašu, parinkikliu ar paveikslėlių plytelėmis, su kiekvieno spausdinimo laiku, gija ir plokštėmis. Išjungus jie rodomi kaip paprasti failai.",
+        "off": "Išjungta",
+        "list": "Sąrašas",
+        "picker": "Parinkiklis",
+        "tiles": "Plytelės",
+        "failed": "Nepavyko išsaugoti, kaip rodomi spausdinimo profiliai."
+      },
       "hoverSlideshow": {
         "heading": "Skaidrės užvedus",
         "failed": "Nepavyko išsaugoti skaidrių užvedus nustatymo.",
@@ -2998,7 +3110,8 @@
       "tabs": {
         "appearance": "Išvaizda",
         "providers": "Šaltiniai",
-        "slicer": "Pjaustyklė"
+        "slicer": "Pjaustyklė",
+        "printers": "Spausdintuvai"
       }
     },
     "providers": {
@@ -3012,7 +3125,7 @@
       "connectTitle": "Prijungti {{name}}",
       "disconnectTitle": "Atjungti {{name}}?",
       "disconnectMessage": "Jūsų {{name}} raktas bus pašalintas, o importavimas iš {{name}} neveiks, kol vėl prijungsite.",
-      "disconnectMessageShared": "{{name}} raktas bus pašalintas visiems šio Thingport naudotojams, o importavimas iš {{name}} neveiks, kol jis vėl bus prijungtas.",
+      "disconnectMessageShared": "{{name}} raktas bus pašalintas visiems šio Thingport serverio naudotojams, o importavimas iš {{name}} neveiks, kol jis vėl bus prijungtas.",
       "failed": "Nepavyko išsaugoti -- bandykite dar kartą.",
       "comingSoon": "Jau netrukus"
     },
@@ -3022,7 +3135,14 @@
       "notActive": "Neaktyvi",
       "activate": "Aktyvuoti",
       "lastUsed": "Paskutinė naudota",
-      "deactivate": "Išjungti"
+      "deactivate": "Išjungti",
+      "throughBridge": "Per Thingport Bridge",
+      "throughBridgeHelp": "Thingport Bridge atsisiunčia failą ir perduoda jį į {{slicer}} – kai {{slicer}} negali jo atsisiųsti iš šio Thingport serverio.",
+      "openAdapted": "Atverti pritaikytą",
+      "openAdaptedHelp": "{{slicer}} atveria modelį kaip jai paruoštą kopiją, o jei ji priima spausdintuvą – ir jūsų spausdintuvui. Išjungus kiekvienas failas atveriamas toks, koks yra.",
+      "printer": "Spausdintuvas",
+      "askPrinter": "Klausti atveriant modelį",
+      "addPrinters": "Pridėti spausdintuvų…"
     },
     "storageMoveProgress": {
       "label": "{{phrase}} {{done}} iš {{total}} modelių",
@@ -3156,7 +3276,10 @@
       "empty": "Šiai versijai naujienų dar nėra.",
       "openGithub": "Atidaryti GitHub",
       "zoom": "Padidinti ekrano vaizdą",
-      "highlight": "Svarbiausia"
+      "highlight": "Svarbiausia",
+      "earlier": "Ankstesnės versijos",
+      "backToLatest": "Grįžti į naujausią",
+      "latest": "Naujausia"
     },
     "codeBlock": {
       "copy": "Kopijuoti",
@@ -3249,7 +3372,7 @@
         "emptyAdmin": "Kol kas nėra įrankių. Įdiekite kurį nors iš saugyklos.",
         "emptyCreate": "Kol kas nėra įrankių. Susikurkite savo arba paprašykite administratoriaus įdiegti.",
         "install": "Įdiegti įrankius",
-        "noAccess": "Šiame Thingport įrankiai jums neprieinami.",
+        "noAccess": "Šiame Thingport serveryje įrankiai jums neprieinami.",
         "dropHere": "Numesk įrankį čia",
         "layout": "Rodyti kaip",
         "layoutFlat": "Vieną tinklelį",
@@ -3442,7 +3565,7 @@
     },
     "missingFiles": {
       "title": "Kai kurie modeliai neberanda savo failų",
-      "lead_one": "1 bibliotekos modelis diske nebeturi nė vieno failo — nei modelio failų, nei paveikslėlių. Kol failai negrįš, jo nebus galima atverti, spausdinti ar atsisiųsti.",
+      "lead_one": "{{count}} bibliotekos modelis diske nebeturi nė vieno failo — nei modelio failų, nei paveikslėlių. Kol failai negrįš, atverti, spausdinti ar atsisiųsti nepavyks.",
       "lead_few": "{{count}} bibliotekos modeliai diske nebeturi nė vieno failo — nei modelio failų, nei paveikslėlių. Kol failai negrįš, jų nebus galima atverti, spausdinti ar atsisiųsti.",
       "lead_other": "{{count}} bibliotekos modelių diske nebeturi nė vieno failo — nei modelio failų, nei paveikslėlių. Kol failai negrįš, jų nebus galima atverti, spausdinti ar atsisiųsti.",
       "leadHelp": "Thingport modelio failus laiko saugyklos kataloge, o duomenų bazėje — tik modelio aprašą. Perkėlus kopiją be to katalogo arba netyčia jį ištrynus, aprašai lieka be failų. Failus iš svetainės, iš kurios modelis atkeliavo, galima atsisiųsti iš naujo: visa kita — pavadinimai, žymos, kolekcijos, mėgstami — lieka kaip buvo.",
@@ -3451,7 +3574,7 @@
       "checkFailed": "Nepavyko peržiūrėti modelių. Bandykite dar kartą, o jei nepavyksta ir toliau — patikrinkite, ar saugyklos katalogas vietoje.",
       "checkFailedStale": "Naujausio patikrinimo atlikti nepavyko, todėl čia matote tai, ką rado paskutinis.",
       "allWell": "Visi modeliai turi savo failus",
-      "allWellDetail_one": "Patikrintas 1 modelis.",
+      "allWellDetail_one": "Patikrintas {{count}} modelis.",
       "allWellDetail_few": "Patikrinti {{count}} modeliai.",
       "allWellDetail_other": "Patikrinta {{count}} modelių.",
       "checkAgain": "Tikrinti dar kartą",
@@ -3463,7 +3586,7 @@
       },
       "fromSites": "Iš kur jie atkeliavo",
       "whatNow": "Ką daryti",
-      "manyWarning_one": "Vienas modelis — greitas darbas.",
+      "manyWarning_one": "{{count}} modelis iš karto — nemažai: svetainės gali paprašyti sulėtinti ar palūkėti, todėl gali užtrukti. Darbas vyksta fone, jį galima bet kada nutraukti.",
       "manyWarning_few": "{{count}} modeliai iš karto — nemažai: svetainės gali paprašyti sulėtinti ar palūkėti, todėl gali užtrukti. Darbas vyksta fone, jį galima bet kada nutraukti.",
       "manyWarning_other": "{{count}} modelių iš karto — nemažai: svetainės gali paprašyti sulėtinti ar palūkėti, todėl gali užtrukti. Darbas vyksta fone, jį galima bet kada nutraukti.",
       "alreadyRunning": "Taisymas jau vyksta.",
@@ -3471,44 +3594,44 @@
       "actions": {
         "reimport": {
           "title": "Atsiųsti trūkstamus failus",
-          "detail_one": "Iš naujo atsiunčia 1 modelio failus iš svetainės, iš kurios jis atkeliavo. Pavadinimas, žymos, kolekcijos ir mėgstamų žymė lieka kaip buvo.",
+          "detail_one": "Iš naujo atsiunčia {{count}} modelio failus iš šaltinio. Pavadinimas, žymos, kolekcijos ir mėgstamų žymė lieka kaip buvo.",
           "detail_few": "Iš naujo atsiunčia {{count}} modelių failus iš svetainių, iš kurių jie atkeliavo. Pavadinimai, žymos, kolekcijos ir mėgstamų žymės lieka kaip buvo.",
           "detail_other": "Iš naujo atsiunčia {{count}} modelių failus iš svetainių, iš kurių jie atkeliavo. Pavadinimai, žymos, kolekcijos ir mėgstamų žymės lieka kaip buvo.",
-          "grabOnly_one": "Šio modelio failus atsiųsti gali tik Thingport Grab. Jis lauks, kol Grab apsilankys svetainėje.",
+          "grabOnly_one": "{{count}} modelio failus atsiųsti gali tik Thingport Grab — kai kitą kartą apsilankys šaltinio svetainėje.",
           "grabOnly_few": "Šiuos failus atsiųsti gali tik Thingport Grab. {{count}} modeliai lauks, kol jis apsilankys svetainėse, iš kurių jie atkeliavo.",
           "grabOnly_other": "Šiuos failus atsiųsti gali tik Thingport Grab. {{count}} modelių lauks, kol jis apsilankys svetainėse, iš kurių jie atkeliavo.",
           "none": "Nė vienas iš šių modelių neturi svetainės, iš kurios būtų galima atsiųsti."
         },
         "delete": {
           "title": "Ištrinti šiuos modelius",
-          "detail_one": "Negrįžtamai pašalina 1 modelį su jo aprašu, žymomis ir įrašais kolekcijose.",
+          "detail_one": "Negrįžtamai pašalina {{count}} modelį su aprašu, žymomis ir įrašais kolekcijose.",
           "detail_few": "Negrįžtamai pašalina {{count}} modelius su jų aprašais, žymomis ir įrašais kolekcijose.",
           "detail_other": "Negrįžtamai pašalina {{count}} modelių su jų aprašais, žymomis ir įrašais kolekcijose."
         }
       },
       "confirm": {
         "reimport": {
-          "title_one": "Atsiųsti 1 modelio failus?",
+          "title_one": "Atsiųsti {{count}} modelio failus?",
           "title_few": "Atsiųsti {{count}} modelių failus?",
           "title_other": "Atsiųsti {{count}} modelių failus?",
-          "message_one": "Thingport atsiųs modelio failus iš svetainės, iš kurios jis atkeliavo. Daugiau nieko nepasikeis, o jei svetainės nepavyks pasiekti, modelis liks lygiai toks, koks yra dabar.",
+          "message_one": "Thingport atsiųs {{count}} modelio failus iš šaltinio. Daugiau nieko nepasikeis, o modelis, kurio svetainės nepavyks pasiekti, liks lygiai toks, koks yra dabar.",
           "message_few": "Thingport po vieną atsiųs kiekvieno modelio failus iš svetainės, iš kurios jis atkeliavo. Daugiau nieko nepasikeis, o modeliai, kurių svetainės nepavyks pasiekti, liks lygiai tokie, kokie yra dabar.",
           "message_other": "Thingport po vieną atsiųs kiekvieno modelio failus iš svetainės, iš kurios jis atkeliavo. Daugiau nieko nepasikeis, o modeliai, kurių svetainės nepavyks pasiekti, liks lygiai tokie, kokie yra dabar.",
-          "queued_one": "Dar 1 modelis lauks, kol Thingport Grab apsilankys svetainėje, iš kurios jo failai.",
+          "queued_one": "Dar {{count}} modelis lauks, kol Thingport Grab apsilankys šaltinio svetainėje.",
           "queued_few": "Dar {{count}} modeliai lauks, kol Thingport Grab apsilankys svetainėse, iš kurių jų failai.",
           "queued_other": "Dar {{count}} modelių lauks, kol Thingport Grab apsilankys svetainėse, iš kurių jų failai.",
           "confirm": "Atsiųsti failus",
           "grabTitle": "Palikti Thingport Grab?",
-          "grabMessage_one": "Thingport pats šio modelio failų atsiųsti negali — tai gali tik Thingport Grab, pačios svetainės puslapiuose. Modelis lauks, kol Grab ten apsilankys, ir jo atnešti failai užims trūkstamųjų vietą.",
+          "grabMessage_one": "Thingport pats {{count}} modelio failų atsiųsti negali — tai gali tik Thingport Grab, pačios svetainės puslapiuose. {{count}} modelis lauks, kol Grab ten apsilankys, ir jo atnešti failai užims trūkstamųjų vietą.",
           "grabMessage_few": "Thingport pats šių failų atsiųsti negali — tai gali tik Thingport Grab, pačių svetainių puslapiuose. {{count}} modeliai lauks, kol Grab apsilankys, ir jo atnešti failai užims trūkstamųjų vietą.",
           "grabMessage_other": "Thingport pats šių failų atsiųsti negali — tai gali tik Thingport Grab, pačių svetainių puslapiuose. {{count}} modelių lauks, kol Grab apsilankys, ir jo atnešti failai užims trūkstamųjų vietą.",
           "grabConfirm": "Palikti Grab"
         },
         "delete": {
-          "title_one": "Ištrinti 1 modelį?",
+          "title_one": "Ištrinti {{count}} modelį?",
           "title_few": "Ištrinti {{count}} modelius?",
           "title_other": "Ištrinti {{count}} modelių?",
-          "message_one": "Veiksmo nebus galima atšaukti. Modelis, jo aprašas, žymos ir įrašai kolekcijose bus pašalinti negrįžtamai. Paliečiamas tik modelis be failų.",
+          "message_one": "Veiksmo nebus galima atšaukti. {{count}} modelis su aprašu, žymomis ir įrašais kolekcijose bus pašalintas negrįžtamai. Paliečiami tik modeliai be failų.",
           "message_few": "Veiksmo nebus galima atšaukti. Visi {{count}} modeliai, jų aprašai, žymos ir įrašai kolekcijose bus pašalinti negrįžtamai. Paliečiami tik modeliai be failų.",
           "message_other": "Veiksmo nebus galima atšaukti. Visi {{count}} modelių, jų aprašai, žymos ir įrašai kolekcijose bus pašalinti negrįžtamai. Paliečiami tik modeliai be failų.",
           "confirm": "Ištrinti modelius"
@@ -4332,7 +4455,7 @@
       "modelFrom": "Nuo {{name}}",
       "yourModel": "Jūsų modelis",
       "openModel": "Atidaryti {{name}}",
-      "sentModels_one": "📎 {{name}}",
+      "sentModels_one": "📎 {{count}} modelis",
       "sentModels_few": "📎 {{count}} modeliai",
       "sentModels_many": "📎 {{count}} modelio",
       "sentModels_other": "📎 {{count}} modelių",
@@ -4355,7 +4478,8 @@
       "instances_few": "{{count}} serveriai",
       "instances_many": "{{count}} serverio",
       "instances_other": "{{count}} serverių",
-      "hostedOn": "Laikomas {{name}}"
+      "hostedOn": "Laikomas {{name}}",
+      "sentModel": "📎 {{name}}"
     },
     "modelPicker": {
       "search": "Ieškoti savo bibliotekoje",
@@ -4366,6 +4490,59 @@
       "noMatch": "Atitinkančių modelių nėra.",
       "emptyLibrary": "Jūsų bibliotekoje kol kas nėra modelių.",
       "loadFailed": "Nepavyko įkelti jūsų modelių."
+    },
+    "printers": {
+      "subtitle": "Dukart spustelėkite spausdintuvą, kad jį pridėtumėte ar pašalintumėte; dešiniuoju mygtuku – jo antgalis ir pjaustyklės.",
+      "failed": "Nepavyko išsaugoti spausdintuvo.",
+      "loadFailed": "Nepavyko įkelti jūsų spausdintuvų.",
+      "yours": "jūsų, {{nozzle}} mm antgalis",
+      "suggested": "Siūlomas",
+      "notYours": "Ne jūsų",
+      "nozzleShort": "{{nozzle}} mm",
+      "suggestedSliced_one": "jam supjaustytas {{count}} jūsų spaudinys",
+      "suggestedSliced_few": "jam supjaustyti {{count}} jūsų spaudiniai",
+      "suggestedSliced_other": "jam supjaustyta {{count}} jūsų spaudinių",
+      "suggestedProjects_one": "jam skirtas {{count}} jūsų projektas",
+      "suggestedProjects_few": "jam skirti {{count}} jūsų projektai",
+      "suggestedProjects_other": "jam skirta {{count}} jūsų projektų",
+      "empty": "Pridėkite spausdintuvus, kuriais spausdinate, ir modeliai jūsų pjaustyklėje atsivers pritaikyti jiems.",
+      "bambu": {
+        "region": "Jūsų Bambu Lab paskyra",
+        "question": "Rasti jūsų spausdintuvus Bambu Lab paskyroje?",
+        "find": "Rasti",
+        "later": "Ne dabar",
+        "found_one": "Pridėtas {{count}} spausdintuvas iš jūsų Bambu Lab paskyros.",
+        "found_few": "Pridėti {{count}} spausdintuvai iš jūsų Bambu Lab paskyros.",
+        "found_other": "Pridėta {{count}} spausdintuvų iš jūsų Bambu Lab paskyros.",
+        "none": "Jūsų Bambu Lab paskyroje nėra Thingport žinomų spausdintuvų.",
+        "expired": "Jūsų MakerWorld prisijungimas nebegalioja. Prisijunkite iš naujo skiltyje „Šaltiniai“.",
+        "signedOut": "Pirmiausia prisijunkite prie MakerWorld skiltyje „Šaltiniai“.",
+        "failed": "Bambu Lab nepateikė jūsų spausdintuvų. Bandykite vėliau."
+      },
+      "menu": {
+        "nozzle": "Antgalis",
+        "usedWith": "Naudojamas su",
+        "slicers_one": "{{count}} pjaustykle",
+        "slicers_few": "{{count}} pjaustyklėmis",
+        "slicers_other": "{{count}} pjaustyklių",
+        "unused": "Jokia",
+        "noSlicers": "Neįjungta nė viena pjaustyklė, priimanti spausdintuvą",
+        "notIn": "Nėra {{slicer}}",
+        "remove": "Pašalinti",
+        "add": "Pridėti prie mano spausdintuvų",
+        "notMine": "Ne mano",
+        "suggestAgain": "Vėl siūlyti"
+      },
+      "add": {
+        "tile": "Pridėti",
+        "title": "Pridėti spausdintuvą",
+        "search": "Ieškoti spausdintuvų",
+        "brands": "Gamintojai",
+        "failed": "Nepavyko įkelti spausdintuvų.",
+        "none": "Nė vienas spausdintuvas neatitinka „{{query}}“.",
+        "added": "pridėtas",
+        "done": "Baigta"
+      }
     }
   },
   "common": {
@@ -4404,7 +4581,8 @@
     "retry": "Bandyti dar kartą",
     "language": "Kalba",
     "more": "Daugiau",
-    "moreActions": "Daugiau veiksmų"
+    "moreActions": "Daugiau veiksmų",
+    "open": "Atidaryti"
   },
   "library": {
     "grid": {
@@ -5063,6 +5241,44 @@
       "internalPlateObjectCount_one": "{{count}} objektas",
       "internalPlateObjectCount_few": "{{count}} objektai",
       "internalPlateObjectCount_other": "{{count}} objektų",
+      "profiles": {
+        "label_one": "Spausdinimo profilis · {{count}}",
+        "label_few": "Spausdinimo profiliai · {{count}}",
+        "label_other": "Spausdinimo profiliai · {{count}}",
+        "labelOne": "Spausdinimo profilis",
+        "help": "Paruošti spausdinti šio modelio nustatymai, kiekvienas su savo spausdintuvu, nustatymais, plokštėmis ir gija. Atidaryti ir Atsisiųsti naudoja pasirinktą.",
+        "position": "{{n}} iš {{count}}",
+        "designer": "Dizaineris",
+        "community": "Bendruomenė",
+        "fromDesigner": "Iš dizainerio",
+        "communityGroup": "Bendruomenė",
+        "otherFiles": "Kiti failai",
+        "otherFile": "Kitas failas",
+        "byCreator": "sukūrė {{name}}",
+        "plates_one": "{{count}} plokštė",
+        "plates_few": "{{count}} plokštės",
+        "plates_other": "{{count}} plokščių",
+        "platesLabel": "Plokštės",
+        "platesInProfile_one": "{{count}} plokštė šiame profilyje",
+        "platesInProfile_few": "{{count}} plokštės šiame profilyje",
+        "platesInProfile_other": "{{count}} plokščių šiame profilyje",
+        "time": "Spausdinimo laikas",
+        "filament": "Gija",
+        "minutes": "{{m}} min.",
+        "hours": "{{h}} val.",
+        "hoursMinutes": "{{h}} val. {{m}} min.",
+        "nozzle": "{{mm}} mm antgalis",
+        "layers": "{{mm}} mm sluoksniai",
+        "infill": "{{value}} užpildas",
+        "walls_one": "{{count}} sienelė",
+        "walls_few": "{{count}} sienelės",
+        "walls_other": "{{count}} sienelių",
+        "supports": "atramos",
+        "showMore": "Rodyti dar {{count}}",
+        "showFewer": "Rodyti mažiau",
+        "pickAria": "Spausdinimo profilis: {{name}}",
+        "previewPlate": "Rodyti {{plate}} 3D peržiūroje"
+      },
       "previewToolbar": {
         "label": "Peržiūros parinktys",
         "top": "Viršus",
@@ -5113,18 +5329,28 @@
       },
       "openInSlicer": "Atverti su {{slicer}}",
       "openInStudio": "Atidaryti „Thingport Studio“",
-      "openNormalizedInSlicer": "Atverti normalizuotą su {{slicer}}",
-      "normalizedInfo": "MakerWorld failai yra Bambu Studio projektai, kuriuos {{slicer}} dažnai atveria be spalvų ar spausdinimo nustatymų. Ši parinktis atveria konvertuotą kopiją, kurioje išlieka nudažytos spalvos, gijų spalvos, plokštės ir autoriaus nustatymai (sienelės, sluoksnio aukštis, užpildas, atramos). Atkreipkite dėmesį: kelių dalių objektai gali būti sujungti į vieną, atskirų objektų nustatymai ir spalvų keitimai tarp sluoksnių pašalinami, o spausdintuvo profilį pasirenkate patys. Saugomas failas nekeičiamas.",
-      "normalizePreparing": "Ruošiamas normalizuotas failas…",
-      "normalizePreparingShort": "Ruošiamas normalizuotas failas…",
-      "normalizeReady": "Paruošta – spustelėkite, kad atvertumėte su {{slicer}}",
-      "normalizeReadyShort": "Paruošta – spustelėkite, kad atvertumėte",
-      "normalizeFailed": "Nepavyko paruošti normalizuotos šio failo kopijos. Naudokite įprastą atvėrimo veiksmą.",
+      "openAdaptedInSlicer": "Atverti pritaikytą su {{slicer}}",
+      "adaptedInfo": {
+        "prusa": "Kopija, paruošta {{slicer}}: ji atsiveria su jūsų spausdintuvo, gijų ir spausdinimo nustatymais, autoriaus sluoksnio aukštis, sienelės, užpildas ir atramos nustatomi kiekvienam objektui, o nudažytos spalvos tenka jūsų ekstruderiams. Saugomas failas nekeičiamas.",
+        "cura": "Kopija, paruošta {{slicer}}, Cura projektas bet kuriam spausdintuvui: atvėrus kaip UCP, autoriaus sluoksnio aukštis, sukibimas ir atramų rūšis pritaikomi jūsų spausdintuvo nustatymams, o kiekvienas objektas išlaiko savo ekstruderį. Kelių dalių objektai išlaiko savo dalis, o autoriaus sienelės, viršutiniai ir apatiniai sluoksniai, užpildas ir atramos nustatomi kiekvienam objektui. Cura neskaito nudažytų spalvų. Saugomas failas nekeičiamas.",
+        "bambu": "Kopija, kurią {{slicer}} atveria kaip savo projektą: dalys, plokštės, dažymas ir autoriaus nustatymai lieka tokie, kokie yra, be klausimų apie failo versiją ar kitaip vadinamus nustatymus. Saugomas failas nekeičiamas.",
+        "bambuPrinter": "Kopija, kurią {{slicer}} atveria kaip savo projektą jūsų spausdintuvui: jos nustatymų rinkiniai tam spausdintuvui su autoriaus pakeitimais, o plokštės perkeltos ant jo pagrindo. Dalys ir dažymas lieka kaip buvo. Saugomas failas nekeičiamas.",
+        "fromPrusa": "Kopija, kurią {{slicer}} atveria kaip savo projektą, padaryta iš šio PrusaSlicer projekto: dalys ir dažymas lieka, kiekvienas pagrindas tampa plokšte, autoriaus sluoksnio aukštis, sienelės, užpildas ir atramos nustatomi kiekvienam objektui, o naudojami jūsų spausdintuvo, gijų ir spausdinimo nustatymai. Saugomas failas nekeičiamas.",
+        "fromPrusaPrinter": "Kopija, kurią {{slicer}} atveria kaip savo projektą jūsų spausdintuvui, padaryta iš šio PrusaSlicer projekto: jos nustatymų rinkiniai tam spausdintuvui su autoriaus sluoksnio aukščiu, sienelėmis, užpildu ir atramomis, gijų spalvos, o kiekvienas autoriaus pagrindas tampa plokšte ant spausdintuvo pagrindo. Dalys ir dažymas lieka kaip buvo. Saugomas failas nekeičiamas.",
+        "prusaPlain": "Kopija, paruošta {{slicer}}: kiekvienai failo spalvai savas ekstruderis, kiekvienas objektas ir dalis su savo spalvos ekstruderiu, o kitos spalvos trikampiai nudažyti, su jūsų spausdintuvo, gijų ir spausdinimo nustatymais. Saugomas failas nekeičiamas.",
+        "curaPlain": "Kopija, paruošta {{slicer}}, Cura projektas bet kuriam spausdintuvui: atvėrus kaip UCP, kiekvienas objektas ir dalis turi savo spalvos ekstruderį; importavus kaip modelius – tik kelių dalių objektų dalys. Saugomas failas nekeičiamas."
+      },
+      "adaptPreparing": "Ruošiamas pritaikytas failas…",
+      "adaptPreparingShort": "Ruošiamas pritaikytas failas…",
+      "adaptReady": "Paruošta – spustelėkite, kad atvertumėte su {{slicer}}",
+      "adaptReadyShort": "Paruošta – spustelėkite, kad atvertumėte",
+      "adaptFailed": "Nepavyko paruošti pritaikytos šio failo kopijos. Naudokite įprastą atvėrimo veiksmą.",
       "openInSlicerGeneric": "Atverti pjaustyklėje",
       "preparedPrintFile": "Paruoštas spaudinys",
       "downloadPickerTitle": "Atsisiųsti",
       "downloadAllZip": "Atsisiųsti visus failus ({{count}}, .zip)",
       "orDownloadOne": "arba atsisiųsti vieną failą",
+      "downloadFolderZip": "Atsisiųsti „{{folder}}“ (.zip)",
       "tags": "Žymos",
       "noTags": "Kol kas nėra žymų.",
       "previousImage": "Ankstesnis paveikslėlis",
@@ -5231,7 +5457,17 @@
       "toolOwnedHint": "Jo negalima redaguoti ar ištrinti",
       "customize": "Keisti…",
       "scriptWithheld": "Scenarijus nepateiktas",
-      "scriptWithheldHint": "Šis modelis sukurtas iš scenarijaus, bet jo autorius nusprendė juo nesidalinti, tad čia nėra ko keisti. Tai pakeisti gali tik jis."
+      "scriptWithheldHint": "Šis modelis sukurtas iš scenarijaus, bet jo autorius nusprendė juo nesidalinti, tad čia nėra ko keisti. Tai pakeisti gali tik jis.",
+      "askPrinter": {
+        "title": "Kuriam spausdintuvui tai skirta?",
+        "subtitle": "{{slicer}} gauna jam paruoštą kopiją su autoriaus nustatymais.",
+        "notIn": "Nėra {{slicer}}",
+        "detail": "{{nozzle}} mm · {{x}} × {{y}}",
+        "nozzle": "{{nozzle}} mm",
+        "remember": "Įsiminti {{slicer}}",
+        "changeLater": "pakeisti galima konfigūracijoje",
+        "open": "Atverti"
+      }
     },
     "customizer": {
       "title": "Keičiamas {{model}}",
@@ -5532,7 +5768,9 @@
         "itemCount_other": "{{count}} modelių",
         "ownerAndCount_one": "{{name}} · {{count}} modelis",
         "ownerAndCount_few": "{{name}} · {{count}} modeliai",
-        "ownerAndCount_other": "{{name}} · {{count}} modelių"
+        "ownerAndCount_other": "{{name}} · {{count}} modelių",
+        "sharedWith": "Bendrinama su: {{names}}",
+        "changeSharing": "Bendrinama su: {{who}}. Keisti, kas mato"
       },
       "form": {
         "createTitle": "Nauja kolekcija",
@@ -5544,23 +5782,45 @@
         "create": "Sukurti",
         "saveFailed": "Nepavyko išsaugoti kolekcijos. Bandykite dar kartą.",
         "visibilityLabel": "Matomumas",
-        "visibilityHelp": "Viešos kolekcijos rodomos skiltyje Naršyti: kiti šio serverio naudotojai gali atidaryti, atsisiųsti ir kopijuoti jų modelius. Privačios matomos tik jums.",
+        "visibilityHelp": "Privačios kolekcijos matomos tik jums. Bendrinamas mato jūsų pasirinkti žmonės, šiame ar sujungtuose serveriuose, viešas – visi, skiltyje Naršyti. Kas mato kolekciją, gali atidaryti, atsisiųsti ir kopijuoti jos modelius.",
         "private": "Privati",
-        "public": "Vieša"
+        "public": "Vieša",
+        "shared": "Bendrinama",
+        "sharedCount_one": "{{count}} žmogus gali ją matyti",
+        "sharedCount_few": "{{count}} žmonės gali ją matyti",
+        "sharedCount_other": "{{count}} žmonių gali ją matyti",
+        "sharedNobody": "Kol kas niekas: matote tik jūs",
+        "sharedElsewhere_one": "{{count}} sujungtuose serveriuose",
+        "sharedElsewhere_few": "{{count}} sujungtuose serveriuose",
+        "sharedElsewhere_other": "{{count}} sujungtuose serveriuose",
+        "sharedHelp": "Jie mato ją kaip viešą kolekciją: gali atidaryti, atsisiųsti ir kopijuoti jos modelius, ir gauna pranešimą, kai su jais pasidalinate. Su kuo dar ji bendrinama, žinote tik jūs. Žmogus sujungtame serveryje ją mato per savo serverį, kuris rodo ją tik jam; to serverio administratoriai irgi galėtų ją matyti.",
+        "keptPeople_one": "{{names}} lieka sąraše: pasirinkite Bendrinama, kad vėl pasidalintumėte.",
+        "keptPeople_few": "{{names}} lieka sąraše: pasirinkite Bendrinama, kad vėl pasidalintumėte.",
+        "keptPeople_other": "{{names}} lieka sąraše: pasirinkite Bendrinama, kad vėl pasidalintumėte.",
+        "andMore_one": "dar {{count}}",
+        "andMore_few": "dar {{count}}",
+        "andMore_other": "dar {{count}}",
+        "peopleFailed": "Nepavyko įkelti, su kuo ji bendrinama, todėl kas ją mato, keisti negalima, kol tai neįsikels.",
+        "createdNotShared": "„{{name}}“ sukurta, bet nepavyko ja pasidalinti. Bandykite dar kartą per jos meniu „Bendrinti…“.",
+        "findPeopleHelp": "Bet kuri vardo dalis suranda žmogų šiame ar sujungtame serveryje; el. paštas suranda žmogų šiame serveryje tik įvestas visas ir niekada nerodomas. Jei kito serverio žmogaus nerandate, įveskite visą jo slapyvardį, pvz. vardas@jo-serveris."
       },
       "detail": {
         "title": "{{name}}",
         "subtitle": "Kolekcija",
         "empty": "Šioje kolekcijoje kol kas nėra modelių.",
         "confirmDelete": "Ištrinti „{{name}}“? Joje esantys modeliai nebus ištrinti.",
-        "deleteFailed": "Nepavyko ištrinti kolekcijos."
+        "deleteFailed": "Nepavyko ištrinti kolekcijos.",
+        "sharedWith_one": "Bendrinama: {{count}}",
+        "sharedWith_few": "Bendrinama: {{count}}",
+        "sharedWith_other": "Bendrinama: {{count}}"
       },
       "errors": {
         "loadFailed": "Nepavyko įkelti kolekcijų.",
         "notFound": "Kolekcija nerasta."
       },
       "sync": {
-        "badgeOff": "{{provider}} šiame Thingport išjungtas, todėl niekas nesinchronizuojama, kol administratorius jo vėl neįjungs",
+        "badgeOff": "{{provider}} šiame Thingport serveryje išjungtas, todėl niekas nesinchronizuojama, kol administratorius jo vėl neįjungs",
+        "badgeSourceOff": "{{provider}} šiame Thingport serveryje išjungtas, todėl jo šaltiniai laukia, kol administratorius jį vėl įjungs; kiti toliau sinchronizuojami",
         "menuProviderOff": "{{provider}} išjungtas",
         "badge": "Sinchronizuojama su {{provider}} kolekcija",
         "menu": "Sinchronizavimo konfigūracija",
@@ -5585,12 +5845,43 @@
         "syncNowStarted": "Sinchronizuojama „{{name}}“. Kai baigs, gausite pranešimą.",
         "nextSync": "kitas sinchronizavimas apie {{time}}",
         "syncNowIn": "Sinchronizuoti dabar vėl galėsite po {{time}}",
+        "addSource": "Pridėti šaltinį",
+        "sourceLikes": "@{{user}} pamėgti modeliai",
+        "sourceUntitled": "{{provider}} kolekcija",
+        "sourceItem": "{{provider}} „{{name}}“",
+        "badgeMany_one": "Sinchronizuojama su {{count}} kolekcija: {{sources}}",
+        "badgeMany_few": "Sinchronizuojama su {{count}} kolekcijomis: {{sources}}",
+        "badgeMany_many": "Sinchronizuojama su {{count}} kolekcijomis: {{sources}}",
+        "badgeMany_other": "Sinchronizuojama su {{count}} kolekcijų: {{sources}}",
+        "introSource_one": "Į {{provider}} kolekciją „{{source}}“ pridėti modeliai čia importuojami kas valandą.",
+        "introSource_few": "Į {{provider}} kolekciją „{{source}}“ pridėti modeliai čia importuojami kas {{count}} valandas.",
+        "introSource_many": "Į {{provider}} kolekciją „{{source}}“ pridėti modeliai čia importuojami kas {{count}} valandos.",
+        "introSource_other": "Į {{provider}} kolekciją „{{source}}“ pridėti modeliai čia importuojami kas {{count}} valandų.",
+        "overviewIntro_one": "„{{name}}“ sinchronizuojama su {{count}} kolekcija. Į ją pridėti modeliai importuojami čia; jūsų pačių pridėti modeliai lieka.",
+        "overviewIntro_few": "„{{name}}“ sinchronizuojama su {{count}} kolekcijomis. Į bet kurią iš jų pridėti modeliai importuojami čia; jūsų pačių pridėti modeliai lieka.",
+        "overviewIntro_many": "„{{name}}“ sinchronizuojama su {{count}} kolekcijomis. Į bet kurią iš jų pridėti modeliai importuojami čia; jūsų pačių pridėti modeliai lieka.",
+        "overviewIntro_other": "„{{name}}“ sinchronizuojama su {{count}} kolekcijų. Į bet kurią iš jų pridėti modeliai importuojami čia; jūsų pačių pridėti modeliai lieka.",
+        "intervalEvery_one": "kas valandą",
+        "intervalEvery_few": "kas {{count}} valandas",
+        "intervalEvery_many": "kas {{count}} valandos",
+        "intervalEvery_other": "kas {{count}} valandų",
+        "checkedShort": "tikrinta {{when}}",
+        "notCheckedShort": "dar netikrinta",
+        "lastFailed": "paskutinis tikrinimas nepavyko",
+        "syncAll": "Sinchronizuoti viską dabar",
+        "syncAllTitle": "Sinchronizuoti viską dabar?",
+        "syncAllMessage_one": "Thingport patikrins {{count}} „{{name}}“ šaltinį, ar yra naujų modelių, ir juos importuos. Kai baigs, gausite pranešimą.",
+        "syncAllMessage_few": "Thingport patikrins {{count}} „{{name}}“ šaltinius, ar yra naujų modelių, ir juos importuos. Apie kiekvieną gausite pranešimą.",
+        "syncAllMessage_many": "Thingport patikrins {{count}} „{{name}}“ šaltinio, ar yra naujų modelių, ir juos importuos. Apie kiekvieną gausite pranešimą.",
+        "syncAllMessage_other": "Thingport patikrins {{count}} „{{name}}“ šaltinių, ar yra naujų modelių, ir juos importuos. Apie kiekvieną gausite pranešimą.",
+        "syncAllStarted": "Sinchronizuojama „{{name}}“. Apie kiekvieną šaltinį gausite pranešimą.",
+        "syncAllUnavailable": "Kiekvienas šaltinis ką tik patikrintas arba jo svetainė išjungta.",
+        "stopSourceMessage": "Nauji modeliai iš „{{source}}“ į „{{name}}“ nebebus įtraukiami. Kolekcija, jos modeliai ir kiti šaltiniai liks.",
+        "stoppedSource": "„{{name}}“ nebesinchronizuojama su „{{source}}“.",
         "stopped": "„{{name}}“ nebesinchronizuojama.",
         "saved": "Sinchronizavimo konfigūracija išsaugota.",
         "sections": {
-          "overview": "Apžvalga",
-          "settings": "Nustatymai",
-          "browse": "Naršyti"
+          "overview": "Apžvalga"
         },
         "intro_one": "Į {{provider}} kolekciją pridėti modeliai čia importuojami kas valandą.",
         "intro_few": "Į {{provider}} kolekciją pridėti modeliai čia importuojami kas {{count}} valandas.",
@@ -5631,6 +5922,8 @@
           "empty": "{{provider}} kolekcijų dar nėra.",
           "pasteLabel": "Kito žmogaus kolekcija",
           "pastedTaken": "Ši kolekcija jau sinchronizuojama su „{{name}}“. Tiekėjo kolekcija gali būti sinchronizuojama tik su viena Thingport kolekcija.",
+          "syncsHere": "Jau sinchronizuojama čia",
+          "pastedHere": "Ši kolekcija jau sinchronizuojama su ja.",
           "confirmMakerworld": "Bus importuojami tik nuo šiol pridėti modeliai.",
           "confirmImport_one": "Bus importuotas jos {{count}} modelis dabar ir nauji, kai bus pridėti.",
           "confirmImport_few": "Bus importuoti jos {{count}} modeliai dabar ir nauji, kai bus pridėti.",
@@ -5688,7 +5981,8 @@
         "openToolUnknown": "Atidaryti įrankį",
         "cantSelect": "Įrankio kolekcijos negalima sujungti ar ištrinti"
       },
-      "publicHint": "Vieša: rodoma kitiems skiltyje Naršyti"
+      "publicHint": "Vieša: rodoma kitiems skiltyje Naršyti",
+      "share": "Bendrinti…"
     },
     "tags": {
       "pageTitle": "Žymos",
@@ -6015,11 +6309,11 @@
         "othersGo_few": "{{names}} bus ištrintos. Jų modeliai liks: jie pereis į „{{name}}“.",
         "othersGo_many": "{{names}} bus ištrintos. Jų modeliai liks: jie pereis į „{{name}}“.",
         "othersGo_other": "{{names}} bus ištrintos. Jų modeliai liks: jie pereis į „{{name}}“.",
-        "keepsOwn": "„{{name}}“ išlaiko savo pavadinimą, aprašymą, žymas ir sinchronizavimą.",
-        "syncStops_one": "{{names}} sinchronizuojama su tiekėjo kolekcija, ir šis sinchronizavimas sustos. Palikite ją, jei norite toliau sinchronizuoti.",
-        "syncStops_few": "{{names}} sinchronizuojamos su tiekėjų kolekcijomis, ir šie sinchronizavimai sustos. Palikite vieną iš jų, jei norite toliau ją sinchronizuoti.",
-        "syncStops_many": "{{names}} sinchronizuojamos su tiekėjų kolekcijomis, ir šie sinchronizavimai sustos. Palikite vieną iš jų, jei norite toliau ją sinchronizuoti.",
-        "syncStops_other": "{{names}} sinchronizuojamos su tiekėjų kolekcijomis, ir šie sinchronizavimai sustos. Palikite vieną iš jų, jei norite toliau ją sinchronizuoti."
+        "keepsOwn": "„{{name}}“ išlaiko savo pavadinimą, aprašymą, žymas ir sinchronizavimus.",
+        "syncsMove_one": "{{names}} sinchronizuojama su tiekėjo kolekcija, o „{{name}}“ toliau su ja sinchronizuosis.",
+        "syncsMove_few": "{{names}} sinchronizuojamos su tiekėjų kolekcijomis, o „{{name}}“ toliau su jomis sinchronizuosis.",
+        "syncsMove_many": "{{names}} sinchronizuojamos su tiekėjų kolekcijomis, o „{{name}}“ toliau su jomis sinchronizuosis.",
+        "syncsMove_other": "{{names}} sinchronizuojamos su tiekėjų kolekcijomis, o „{{name}}“ toliau su jomis sinchronizuosis."
       },
       "tags": {
         "title_one": "Sujungti {{count}} žymą",
@@ -6076,7 +6370,65 @@
       "noSources": "Dar nieko neimportuota, tad nėra iš ko rinktis.",
       "noneSelected": "Neįjungta nė viena svetainė, tad nėra ko rodyti.",
       "noMatch": "Nė vienas čia esantis modelis neatitinka filtrų.",
-      "clear": "Išvalyti filtrus"
+      "clear": "Išvalyti filtrus",
+      "licenseAllows": "Licencija leidžia",
+      "allowsShare": "Galima dalintis",
+      "allowsShareHint": "Tik modeliai, kurių licencija leidžia perduoti failus kitiems nepakeistus. Svetainių asmeninio naudojimo licencijos to dažniausiai neleidžia.",
+      "allowsCommercial": "Komercinis naudojimas",
+      "allowsCommercialHint": "Tik modeliai, kurių licencija leidžia juos naudoti komerciškai, įskaitant spaudinių pardavimą.",
+      "allowsRemix": "Perdirbimas",
+      "allowsRemixHint": "Tik modeliai, kurių licencija leidžia juos keisti.",
+      "licensed": "Tik su licencija",
+      "licensedHint": "Praleisti modelius, kurių šaltinis nenurodo licencijos."
+    },
+    "license": {
+      "title": "Licencija",
+      "notStated": "{{site}} licencijos nenurodo",
+      "reading": "Skaitoma licencija",
+      "readFailed": "Nepavyko perskaityti licencijos iš {{site}}",
+      "retry": "Bandyti dar kartą",
+      "details": "{{license}}: licencijos informacija",
+      "summary": {
+        "credit": "Nurodyti autorių",
+        "nonCommercial": "Nekomercinis",
+        "noRemix": "Be perdirbimo",
+        "shareAlike": "Ta pačia licencija",
+        "noSharing": "Failais dalintis negalima",
+        "personalUse": "Tik asmeniniam naudojimui",
+        "nothingGiven": "Jokių teisių nesuteikia",
+        "noConditions": "Be sąlygų",
+        "seeTerms": "Žr. jos sąlygas"
+      },
+      "deed": {
+        "share": "Dalintis failais",
+        "remix": "Perdirbti",
+        "commercial": "Komercinis naudojimas",
+        "credit": "Nurodyti autorių",
+        "sameLicense": "Perdirbiniai ta pačia licencija"
+      },
+      "can": {
+        "yes": "Leidžiama",
+        "no": "Neleidžiama",
+        "must": "Privaloma"
+      },
+      "unknown": "Thingport šios licencijos nežino: kas leidžiama, nurodo jos sąlygos.",
+      "siteAdds": "{{site}} papildo",
+      "terms": "Sąlygos",
+      "asListed": "Kaip nurodo {{site}}",
+      "pickedByOwner": "Pasirinko savininkas",
+      "fullLicense": "Visa licencija",
+      "copyCredit": "Kopijuoti autorystę",
+      "copied": "Autorystės eilutė nukopijuota",
+      "change": "Keisti",
+      "creditBy": "– {{creator}}",
+      "creditUnder": "licencija: {{license}}.",
+      "fromSource": "Kaip nurodo {{site}}",
+      "none": "Nėra",
+      "groups": {
+        "cc": "Creative Commons",
+        "open": "Atviro kodo",
+        "reserved": "Kita"
+      }
     },
     "shared": {
       "sharedBy": "Dalijasi {{name}}",
@@ -6186,7 +6538,13 @@
         "label": "Rodyti",
         "all": "Visur",
         "here": "Šiame serveryje"
-      }
+      },
+      "sharedWithYou": "Bendrinama su jumis",
+      "sharedWithYouHelp": "Kolekcijos, kuriomis savininkai pasidalino su jumis ir keliais kitais. Kiti jų skiltyje Naršyti nemato.",
+      "showMore_one": "Rodyti dar {{count}}",
+      "showMore_few": "Rodyti dar {{count}}",
+      "showMore_other": "Rodyti dar {{count}}",
+      "sharedFailed": "Nepavyko įkelti daugiau to, kas bendrinama su jumis. Bandykite dar kartą."
     }
   },
   "providers": {
@@ -6255,10 +6613,10 @@
           "Nukopijuokite rodomą App Token ir įklijuokite jį žemiau."
         ],
         "placeholder": "Įklijuokite App Token",
-        "shared": "Šis raktas bendras visiems šio Thingport naudotojams."
+        "shared": "Šis raktas bendras visiems šio Thingport serverio naudotojams."
       },
       "status": {
-        "adminOnly": "Tai nustatyti gali tik šio Thingport administratorius.",
+        "adminOnly": "Tai nustatyti gali tik šio Thingport serverio administratorius.",
         "disabledReason": "Thingiverse: administratorius dar nesukonfigūravo API rakto"
       },
       "about": {
@@ -6272,7 +6630,7 @@
         ]
       },
       "admin": {
-        "description": "Importai, kolekcijos ir patikę modeliai, naudojant šio Thingport programėlės raktą.",
+        "description": "Importai, kolekcijos ir patikę modeliai, naudojant šio Thingport serverio programėlės raktą.",
         "keyStatus": {
           "set": "Programėlės raktas nustatytas",
           "missing": "Nėra programėlės rakto: Thingiverse importai neveiks, kol jo nenustatysite"
@@ -6294,7 +6652,7 @@
         }
       },
       "sync": {
-        "notConnected": "Thingiverse šiame Thingport dar neprijungtas. Administratorius gali jį prijungti per Konfigūracija > Tiekėjai.",
+        "notConnected": "Thingiverse šiame Thingport serveryje dar neprijungtas. Administratorius gali jį prijungti per Konfigūracija > Tiekėjai.",
         "usernameHint": "Thingport parodys jūsų viešas Thingiverse kolekcijas. Paklausiama tik kartą.",
         "usernamePlaceholder": "Vartotojo vardas arba profilio nuoroda",
         "showing": "Rodomos viešos @{{user}} kolekcijos.",
@@ -6326,7 +6684,7 @@
         ]
       },
       "admin": {
-        "description": "Modeliai ir viešos kolekcijos, naudojant šio Thingport API raktą; nusipirkti modeliai – per kiekvieno naudotojo MyMiniFactory paskyrą.",
+        "description": "Modeliai ir viešos kolekcijos, naudojant šio Thingport serverio API raktą; nusipirkti modeliai – per kiekvieno naudotojo MyMiniFactory paskyrą.",
         "keyStatus": {
           "set": "API raktas nustatytas",
           "missing": "Nėra API rakto: MyMiniFactory importai neveiks, kol jo nenustatysite"
@@ -6348,7 +6706,7 @@
         }
       },
       "sync": {
-        "notConnected": "MyMiniFactory šiame Thingport dar neprijungtas. Administratorius gali jį prijungti per Konfigūracija > Tiekėjai.",
+        "notConnected": "MyMiniFactory šiame Thingport serveryje dar neprijungtas. Administratorius gali jį prijungti per Konfigūracija > Tiekėjai.",
         "usernameHint": "Thingport parodys jūsų viešas MyMiniFactory kolekcijas. Paklausiama tik kartą.",
         "usernamePlaceholder": "Vartotojo vardas arba profilio nuoroda",
         "showing": "Rodomos viešos @{{user}} kolekcijos.",
@@ -6811,6 +7169,105 @@
       },
       "sync": {
         "notConnected": "Šiuo metu OwlCAD nepasiekiamas."
+      }
+    },
+    "pixup3d": {
+      "connect": {
+        "steps": [
+          "Paprasčiausia: su Thingport Grab tiesiog atverkite pixup3d.com prisijungę. Jis prijungs jūsų paskyrą ir atsiųs naują prisijungimą kaskart, kai jis ten pasikeis.",
+          "Arba rankiniu būdu: prisijunkite prie pixup3d.com ir atverkite naršyklės kūrėjo įrankius (F12).",
+          "Skiltyje Application (Chrome, Edge) arba Storage (Firefox) → Cookies → pixup3d.com nukopijuokite _phrozen_session reikšmę ir įklijuokite ją žemiau. Tiks ir prisijungus siųstos pixup3d.com užklausos Cookie antraštė."
+        ],
+        "placeholder": "_phrozen_session slapukas arba prisijungus siųstos užklausos Cookie antraštė"
+      },
+      "status": {
+        "notConnected": "PIXUP failus duoda tik prisijungusiems nariams, net nemokamų modelių. Prijunkite paskyrą, kad galėtumėte importuoti savo modelius; bet kieno norų sąrašai ir kolekcijos skaitomi ir be jos.",
+        "expired": "Prisijungimo galiojimas baigėsi. Prisijunkite pixup3d.com su Thingport Grab arba vėl prijunkite PIXUP skiltyje Konfigūracija → Šaltiniai.",
+        "expiredStatus": "Prisijungimas nebegalioja",
+        "disabledReason": "PIXUP: prijunkite paskyrą skiltyje Konfigūracija → Šaltiniai"
+      },
+      "about": {
+        "summary": "Phrozen modelių parduotuvė: figūrėlės, biustai ir stalo žaidimų miniatiūros, daug jų su atramomis dervos spausdinimui, nemokami ir mokami.",
+        "signIn": "Jūsų pačių prisijungimas, jums priklausančių modelių failams; bet kieno norų sąrašai ir kolekcijos skaitomi ir be jo.",
+        "grab": "Atsiunčia jūsų prisijungimą, kai lankotės pixup3d.com, ir pažymi mokamus modelius, kurių nepirkote.",
+        "setup": [
+          "Įdiekite Thingport Grab, įjunkite jį PIXUP ir atverkite pixup3d.com prisijungę.",
+          "Rankiniu būdu: nukopijuokite prisijungusio pixup3d.com skirtuko _phrozen_session slapuką ir įklijuokite jį skiltyje Konfigūracija → Šaltiniai."
+        ]
+      },
+      "admin": {
+        "description": "Modeliai, norų sąrašai ir kolekcijos. Sąrašai skaitomi be prisijungimo; failams reikia paties naudotojo prisijungimo. Nemokamas modelis pirmiausia įdedamas į jo PIXUP biblioteką 0 $ užsakymu; mokamas importuojamas tik nupirktas."
+      },
+      "sync": {
+        "notConnected": "Prijunkite PIXUP skiltyje Konfigūracija > Šaltiniai arba apsilankykite jame su Thingport Grab, kad čia matytumėte savo norų sąrašą ir kolekcijas."
+      },
+      "blocked": {
+        "paid": {
+          "title": "Mokamas modelis",
+          "hint": "Pirmiausia nusipirkite jį PIXUP. Kai jis bus jūsų bibliotekoje, Thingport jį importuos."
+        }
+      }
+    },
+    "fab365": {
+      "connect": {
+        "steps": [
+          "Paprasčiausia: su Thingport Grab tiesiog atverkite fab365.net būdami prisijungę. Jis prijungs jūsų paskyrą ir atsiųs naują prisijungimą, kai tik jis ten pasikeis.",
+          "Arba rankiniu būdu: prisijunkite fab365.net ir atverkite naršyklės kūrėjo įrankius (F12).",
+          "Skiltyje Application (Chrome, Edge) arba Storage (Firefox) → Local storage → fab365.net nukopijuokite accessToken ir refreshToken reikšmes ir įklijuokite žemiau, kiekvieną atskiroje eilutėje po jos pavadinimo (accessToken: … ir refreshToken: …). Su refreshToken Thingport prisijungimą atnaujina pats; vien accessToken nustoja veikti maždaug po 100 minučių, tada jį reikia įklijuoti iš naujo."
+        ],
+        "placeholder": "accessToken: … ir refreshToken: …, kiekvienas atskiroje eilutėje"
+      },
+      "status": {
+        "notConnected": "Fab365 failus duoda tik prisijungusiems nariams, įskaitant nemokamus modelius. Prijunkite paskyrą, kad importuotumėte turimus ir matytumėte mėgstamus.",
+        "expired": "Prisijungimas nebegalioja. Prisijunkite fab365.net su Thingport Grab arba iš naujo prijunkite Fab365 Konfigūracija → Tiekėjai.",
+        "expiredStatus": "Prisijungimas nebegalioja",
+        "disabledReason": "Fab365: prijunkite paskyrą Konfigūracija → Tiekėjai"
+      },
+      "about": {
+        "summary": "Pietų Korėjos modelių parduotuvė, garsėjanti kruopščiai suprojektuotais spaudiniais — SpaceX raketomis, sulankstomais robotais, „Star Wars“ laivais — dauguma jų pritaikyti spausdinti be atramų.",
+        "signIn": "Jūsų pačių prisijungimas failams ir mėgstamiems; modelių puslapiai skaitomi ir be jo.",
+        "grab": "Siunčia jūsų prisijungimą, kai apsilankote fab365.net, kad Thingport galėtų atsisiųsti failus ir perskaityti jūsų mėgstamus.",
+        "setup": [
+          "Įdiekite Thingport Grab, įjunkite jį Fab365 ir atverkite fab365.net prisijungę.",
+          "Rankiniu būdu: nukopijuokite accessToken ir refreshToken reikšmes iš prisijungusios fab365.net kortelės vietinės saugyklos ir įklijuokite Konfigūracija → Tiekėjai, kiekvieną atskiroje eilutėje po jos pavadinimo."
+        ]
+      },
+      "admin": {
+        "description": "Modeliai ir jūsų mėgstami. Modelių puslapiai skaitomi be prisijungimo; failams reikia kiekvieno vartotojo prisijungimo. Nemokami ir turimi modeliai importuojami; mokamą ar bilietu gaunamą modelį, kurio neturite, pirma reikia nusipirkti ar iškeisti Fab365."
+      },
+      "sync": {
+        "notConnected": "Prijunkite Fab365 Konfigūracija > Tiekėjai arba apsilankykite prisijungę su Thingport Grab, kad čia matytumėte mėgstamus."
+      }
+    },
+    "threedexport": {
+      "connect": {
+        "steps": [
+          "Paprasčiausia: su Thingport Grab tiesiog atverkite 3dexport.com prisijungę. Jis prijungs jūsų paskyrą ir atsiųs naują prisijungimą kaskart, kai jis ten pasikeis.",
+          "Arba rankiniu būdu: prisijunkite prie 3dexport.com ir atverkite naršyklės kūrėjo įrankius (F12).",
+          "Skiltyje Network iš naujo įkelkite puslapį, spustelėkite bet kurią 3dexport.com užklausą, nukopijuokite jos Cookie antraštę ir įklijuokite ją žemiau. Prisijungimas yra jos slapukai nm_userid ir nm_hash, o atsijungus nuo 3dexport.com jie nebegalioja."
+        ],
+        "placeholder": "Prisijungus siųstos 3dexport.com užklausos Cookie antraštė"
+      },
+      "status": {
+        "notConnected": "3DExport failus duoda tik prisijungusiems naudotojams, įskaitant ir nemokamus modelius. Prijunkite paskyrą, kad galėtumėte juos ir savo kolekcijas importuoti; bet kieno viešos kolekcijos skaitomos ir be jo.",
+        "expired": "Prisijungimo galiojimas baigėsi: atsijungus nuo 3dexport.com jis nebegalioja. Vėl prisijunkite ten su Thingport Grab arba vėl prijunkite 3DExport skiltyje Konfigūracija → Šaltiniai.",
+        "expiredStatus": "Prisijungimas nebegalioja",
+        "disabledReason": "3DExport: prijunkite paskyrą skiltyje Konfigūracija → Šaltiniai"
+      },
+      "about": {
+        "summary": "Viena seniausių 3D modelių parduotuvių, veikianti nuo 2004 m.: žaidimų ir kino modeliai, tekstūros ir didelis 3D spausdinimo katalogas, dalis jo nemokama.",
+        "signIn": "Jūsų pačių prisijungimas, failams ir jūsų kolekcijoms; bet kieno viešos kolekcijos skaitomos ir be jo.",
+        "grab": "Atsiunčia jūsų prisijungimą, kai lankotės 3dexport.com, ir pažymi mokamus modelius, kurių nepirkote.",
+        "setup": [
+          "Įdiekite Thingport Grab, įjunkite jį 3DExport ir atverkite 3dexport.com prisijungę.",
+          "Rankiniu būdu: nukopijuokite prisijungus siųstos 3dexport.com užklausos Cookie antraštę ir įklijuokite ją skiltyje Konfigūracija → Šaltiniai."
+        ]
+      },
+      "admin": {
+        "description": "Modeliai ir kolekcijos: kiekvieno naudotojo savos ir bet kieno viešos. Modelių puslapiai ir viešos kolekcijos skaitomi be prisijungimo; failams reikia paties naudotojo prisijungimo. Importuojami nemokami modeliai, mokamas tik nupirktas, ir tik tie formatai, kuriuos atveria pjaustyklė."
+      },
+      "sync": {
+        "notConnected": "Prijunkite 3DExport skiltyje Konfigūracija > Šaltiniai arba apsilankykite jame prisijungę su Thingport Grab, kad čia matytumėte savo kolekcijas."
       }
     }
   }

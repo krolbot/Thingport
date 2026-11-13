@@ -57,6 +57,7 @@ export type LogAction =
   | "api_token_rest_scopes_changed"
   | "mcp_access_changed"
   | "file_reuse_changed"
+  | "license_files_changed"
   | "file_reuse_backfill_started"
   | "custom_widgets_changed"
   | "tool_installed"
@@ -78,6 +79,7 @@ export type LogAction =
   | "model_copied"
   | "collection_created"
   | "collection_edited"
+  | "collection_sharing_changed"
   | "collection_deleted"
   | "collections_merged"
   | "collection_item_added"
@@ -145,7 +147,7 @@ export type StorageFolder = {
 };
 
 /** "plate" is a model file, "file" a supporting or prepared one; the rest are the model's pictures. */
-export type StorageFileKind = "plate" | "file" | "image" | "description" | "thumb" | "render";
+export type StorageFileKind = "plate" | "file" | "license" | "image" | "description" | "thumb" | "render";
 
 export type StorageFile = {
   name: string;
@@ -196,7 +198,10 @@ export const adminApi = {
     return res.json();
   },
 
-  inviteUser: async (email: string): Promise<{ email: string; expires_at: string; expires_in_days: number }> => {
+  /** `link` is null when the invitation went by email; without SMTP it's the link for the admin to send. */
+  inviteUser: async (
+    email: string,
+  ): Promise<{ email: string; expires_at: string; expires_in_days: number; link: string | null }> => {
     const res = await fetch(`${apiBase()}/admin/invitations`, {
       method: "POST",
       headers: authHeaders({ "Content-Type": "application/json" }),

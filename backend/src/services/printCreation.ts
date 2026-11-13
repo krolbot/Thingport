@@ -5,6 +5,7 @@ import { prisma } from "../db";
 import { STORAGE, PARAMETRIC_SOURCE_EXTS } from "../config";
 import { withStorageLock } from "../utils/storageLock";
 import { HttpError, sanitizeFilename, guessMimeFromPath, mimeFromContentType } from "../utils/fileUtils";
+import { normalizeFolder } from "../utils/fileFolder";
 import { normalizeTags } from "../utils/tagNormalization";
 import { inspectPreparedPrint } from "./preparedPrint";
 import {
@@ -24,7 +25,8 @@ import {
 import { generateModelPreviewGlb, canRenderModelImage } from "./modelPreviewCache";
 import { generateCardRender } from "./previewImageService";
 import { printAssetHome } from "./modelAssets";
-import { deleteNormalized3mf } from "./normalized3mfCache";
+import { deleteAdapted3mfs } from "./adapted3mfCache";
+import { storePlateFormat } from "./threeMfFormat";
 import { getPreviewMode } from "./settingsService";
 import { reuseMarker, shareStoredCopy, type ReuseMarker } from "./fileReuse";
 import { findStoredCopies } from "./storedContent";
@@ -35,6 +37,7 @@ import { enqueueAiDescription } from "./aiDescriptionService";
 import { deleteAllPrintFiles, saveFileFromTemp } from "./printFileService";
 import { importingQuietly } from "../utils/quietImport";
 import { authorIdByName } from "./authorService";
+import { afterLicenseChange, scheduleLicenseFill } from "./licenseService";
 
 const IMAGE_EXTS = new Set([".png", ".jpg", ".jpeg", ".webp", ".bmp"]);
 
@@ -48,6 +51,10 @@ export type NewPlateInput = {
   copyFromPath?: string; // copied into managed storage, source left intact
   sourcePath?: string; // no-copy: file stays at this path, storagePath is still rendered/recorded
   sourceInstanceId?: string | null;
+  /** What was read of the print profile it is (Plate.profile), carried over by a copy so it isn't read again. */
+  profile?: Prisma.JsonValue | null;
+  /** The folder its source kept it in (Plate.folder); untrusted, normalized here. */
+  folder?: string | null;
 };
 
 /** A file that is a script a model can be generated from, rather than geometry to print. */
@@ -66,6 +73,8 @@ export type PrintMetaInput = {
   /** Backs de-duplication of future imports of the same source model. */
   sourceProvider?: string | null;
   sourceExternalId?: string | null;
+  /** What its source had nothing for at the last fill (Print.unfillableGaps), carried over by a copy. */
+  unfillableGaps?: string[];
   /** The source has the script this model is generated from, but its creator chose not to share it. */
   generatorScriptWithheld?: boolean;
   /** Another user's model this one is a copy of (services/modelCopyService.ts), and the first original behind it. */
@@ -73,6 +82,9 @@ export type PrintMetaInput = {
   originalId?: string | null;
   /** A copy of a partner instance's model: where it came from (federation/remoteCopy.ts). */
   remoteSource?: Prisma.InputJsonValue | null;
+  /** Its licence's columns (services/licenseService.ts): what an import read, or what a copy carries over. Absent on an
+   *  import that didn't look, whose licence is then read once it has settled. */
+  licenseColumns?: Partial<Pick<Prisma.PrintUncheckedCreateInput, "license" | "licenseAllows" | "licenseReadAt">>;
 };
 
 /** Never over another file: a link fails on one that's there, where a rename would replace it. Only the placing is
@@ -139,6 +151,7 @@ async function thumbnailAndSniff(plateId: string, filename: string, mime: string
   if (mime.toLowerCase().startsWith("image/") && IMAGE_EXTS.has(ext)) {
     await saveThumbFromFile(plateId, effectivePath);
   } else if (ext === ".3mf") {
+    await storePlateFormat(plateId, filename, effectivePath);
     await ensurePlateThumbnail(plateId, effectivePath);
     // "on-demand" builds the preview on first view, "disabled" never. Not awaited: it can be slow.
     if ((await getPreviewMode()) === "automatic") void generateModelPreviewGlb(plateId, effectivePath);
@@ -180,8 +193,9 @@ async function createPlateAtPosition(
   position: number,
 ): Promise<CreatedPlate> {
   const sanitized = sanitizeFilename(input.filename);
-  const desiredFilename = await availablePlateFilename(print.id, sanitized);
-  const storagePath = await renderPlateStoragePath(print, desiredFilename, position);
+  const folder = normalizeFolder(input.folder);
+  const desiredFilename = await availablePlateFilename(print.id, sanitized, undefined, folder);
+  const storagePath = await renderPlateStoragePath(print, desiredFilename, position, folder);
   const destAbsPath = path.join(STORAGE, storagePath);
   const { effectivePath, contentSha256, marker } = await placePlateFile(input, destAbsPath);
   const size = await resolveSize(input, effectivePath);
@@ -194,11 +208,13 @@ async function createPlateAtPosition(
         printId: print.id,
         position,
         filename: desiredFilename,
+        folder,
         mime,
         size,
         storagePath,
         sourcePath: input.sourcePath ?? null,
         sourceInstanceId: input.sourceInstanceId ?? null,
+        profile: input.profile == null ? undefined : (input.profile as Prisma.InputJsonValue),
         contentSha256,
         ...marker,
       },
@@ -210,6 +226,10 @@ async function createPlateAtPosition(
   }
 
   await thumbnailAndSniff(record.id, desiredFilename, mime, effectivePath);
+  // A print profile's facts are read once its import has settled. Loaded when used: the service reaches this file.
+  if (record.sourceInstanceId) {
+    void import("./printProfileService").then(({ scheduleProfileFill }) => scheduleProfileFill(print.id));
+  }
   return { record, effectivePath };
 }
 
@@ -224,9 +244,11 @@ export async function keepGeneratorScripts(userId: string, printId: string, inpu
   if (!inputs.length) return;
   // A model's own script comes down again with every profile imported after the first (see importService's
   // addProfiles), and storing it each time would leave the model holding "model.scad", "model (1).scad" and on.
+  const keyOf = (filename: string, folder: string | null | undefined) =>
+    `${normalizeFolder(folder) ?? ""}\0${filename.toLowerCase()}`;
   const stored = new Set(
-    (await prisma.printFile.findMany({ where: { printId }, select: { filename: true } })).map((file) =>
-      file.filename.toLowerCase(),
+    (await prisma.printFile.findMany({ where: { printId }, select: { filename: true, folder: true } })).map((file) =>
+      keyOf(file.filename, file.folder),
     ),
   );
   for (const input of inputs) {
@@ -237,12 +259,14 @@ export async function keepGeneratorScripts(userId: string, printId: string, inpu
       continue;
     }
     // Compared as it will be stored, since that is the name a second copy would collide with.
-    const safeName = sanitizeFilename(input.filename).toLowerCase();
-    if (stored.has(safeName)) continue;
+    const key = keyOf(sanitizeFilename(input.filename), input.folder);
+    if (stored.has(key)) continue;
     try {
       // Plain text, which no mime table knows .scad for, so it is given rather than guessed.
-      await saveFileFromTemp(userId, printId, input.tempFilePath, input.filename, "text/plain");
-      stored.add(safeName);
+      await saveFileFromTemp(userId, printId, input.tempFilePath, input.filename, "text/plain", {
+        folder: input.folder,
+      });
+      stored.add(key);
     } catch (err) {
       console.warn(`Couldn't keep the generator script ${input.filename}:`, err);
     }
@@ -299,10 +323,12 @@ export async function createPrint(
       authorId,
       sourceProvider: meta.sourceProvider ?? null,
       sourceExternalId: meta.sourceExternalId ?? null,
+      unfillableGaps: meta.unfillableGaps ?? [],
       generatorScriptWithheld: meta.generatorScriptWithheld ?? false,
       copiedFromId: meta.copiedFromId ?? null,
       originalId: meta.originalId ?? null,
       remoteSource: meta.remoteSource ?? undefined,
+      ...meta.licenseColumns,
     },
   });
   // Chosen now, though nothing is in it yet, so a null assetsPath only ever means a model from before (see
@@ -333,6 +359,9 @@ export async function createPrint(
     }
 
     await keepGeneratorScripts(userId, print.id, sourceInputs);
+    // Once the files are in place, so LICENSE.txt lands in the folder they chose.
+    if (meta.licenseColumns?.licenseReadAt) await afterLicenseChange(print.id);
+    else if (print.sourceProvider) scheduleLicenseFill(print.id);
 
     // Background classification is intentionally detached: importing a model must not wait for,
     // or fail because of, a third-party AI provider.
@@ -413,7 +442,7 @@ export async function removePlate(print: Pick<Print, "id" | "assetsPath">, plate
 export async function renamePlate(print: Print, plateId: string, filename: string): Promise<string> {
   const plate = await prisma.plate.findUnique({ where: { id: plateId } });
   if (!plate || plate.printId !== print.id) throw new HttpError(404, "Plate not found");
-  const nextFilename = await availablePlateFilename(print.id, sanitizeFilename(filename), plate.id);
+  const nextFilename = await availablePlateFilename(print.id, sanitizeFilename(filename), plate.id, plate.folder);
   if (nextFilename !== plate.filename) {
     await prisma.plate.update({ where: { id: plate.id }, data: { filename: nextFilename } });
     await relocatePrint(print, [{ ...plate, filename: nextFilename }]);
@@ -423,7 +452,7 @@ export async function renamePlate(print: Print, plateId: string, filename: strin
 }
 
 export async function deletePlateFiles(plate: Pick<Plate, "id" | "storagePath">): Promise<void> {
-  await deleteNormalized3mf(plate.id);
+  await deleteAdapted3mfs(plate.id);
   const abs = path.join(STORAGE, plate.storagePath);
   try {
     await fs.rm(abs, { force: true });

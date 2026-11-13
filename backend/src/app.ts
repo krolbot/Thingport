@@ -8,6 +8,7 @@ import { pathToken, requireAuth } from "./auth";
 import healthRoutes from "./routes/health";
 import mcpRoutes from "./routes/mcp";
 import iconRoutes from "./routes/icons";
+import printerRoutes from "./routes/printers";
 import profileRoutes from "./routes/profile";
 import captchaRoutes from "./routes/captcha";
 import authRoutes from "./routes/auth";
@@ -35,7 +36,7 @@ import providerCollectionsRoutes from "./routes/providerCollections";
 import bookmarksRoutes from "./routes/bookmarks";
 import searchRoutes from "./routes/search";
 import notificationsRoutes from "./routes/notifications";
-import releaseNotesRoutes from "./routes/releaseNotes";
+import releaseNotesRoutes, { localFilesRoutes as releaseNotesFilesRoutes } from "./routes/releaseNotes";
 import adminRoutes from "./routes/admin";
 import dashboardRoutes from "./routes/dashboard";
 import widgetRoutes from "./routes/widgets";
@@ -86,6 +87,10 @@ export function createApp(): Express {
   app.use("/api", iconRoutes);
   // And a cover's.
   app.use("/api", profileRoutes);
+  // And the pictures of release notes read from a checkout.
+  app.use("/api", releaseNotesFilesRoutes);
+  // And a catalogue printer's picture.
+  app.use("/api", printerRoutes);
   app.use("/api", captchaRoutes);
   app.use("/api", authRoutes);
   app.use("/api", oidcRoutes);

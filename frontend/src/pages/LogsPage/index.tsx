@@ -40,6 +40,7 @@ const ACTION_COLORS: Record<LogAction, ActionColor> = {
   api_token_rest_scopes_changed: "warning",
   mcp_access_changed: "warning",
   file_reuse_changed: "info",
+  license_files_changed: "info",
   file_reuse_backfill_started: "info",
   custom_widgets_changed: "warning",
   tool_installed: "info",
@@ -61,6 +62,7 @@ const ACTION_COLORS: Record<LogAction, ActionColor> = {
   model_copied: "success",
   collection_created: "success",
   collection_edited: "warning",
+  collection_sharing_changed: "warning",
   collection_deleted: "error",
   collections_merged: "warning",
   collection_item_added: "info",
@@ -159,6 +161,7 @@ export default function LogsPage({ onUnauthorized }: Props) {
       case "model_copied":
       case "collection_created":
       case "collection_edited":
+      case "collection_sharing_changed":
       case "collection_deleted":
       case "collection_item_added":
       case "collection_item_removed":
@@ -183,6 +186,10 @@ export default function LogsPage({ onUnauthorized }: Props) {
       case "chat_room_edited":
       case "chat_room_deleted":
         return typeof d.name === "string" ? d.name : "";
+      case "license_files_changed":
+        return typeof d.enabled === "boolean"
+          ? t(d.enabled ? "adminSettings.logs.licenseFilesOn" : "adminSettings.logs.licenseFilesOff")
+          : "";
       case "federation_settings_changed":
         return typeof d.enabled === "boolean"
           ? t(d.enabled ? "adminSettings.logs.federationOn" : "adminSettings.logs.federationOff")

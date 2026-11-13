@@ -1,5 +1,6 @@
 import type { AiConnection, AiProviderKind, ReasoningEffort } from "@prisma/client";
 import { currentStorageMove, startStorageMove, type StorageMoveRun } from "../services/storageMoveService";
+import { syncAllLicenseFiles } from "../services/licenseFile";
 import {
   currentFileReuseBackfill,
   startFileReuseBackfill,
@@ -55,6 +56,8 @@ import {
   setMcpAccess,
   MCP_ACCESS_LEVELS,
   getFileReuse,
+  getLicenseFiles,
+  setLicenseFiles,
   setFileReuse,
   FILE_REUSE_MODES,
 } from "../services/settingsService";
@@ -68,7 +71,13 @@ import {
   setStorageTemplate,
   validateStorageTemplate,
 } from "../services/printService";
-import { SLICER_IDS, getUserSlicerSettings, setUserSlicerSettings } from "../services/slicerPreferenceService";
+import {
+  BRIDGEABLE_SLICER_IDS,
+  NotYourPrinterError,
+  SLICER_IDS,
+  getUserSlicerSettings,
+  setUserSlicerSettings,
+} from "../services/slicerPreferenceService";
 import { CATEGORIES_VIEWS, getCategoriesView, setCategoriesView } from "../services/categoriesViewService";
 import { getToolsView, setToolsView, toolsViewSchema } from "../services/toolsViewService";
 import {
@@ -123,6 +132,7 @@ import {
 import { type AuthSlot, MANIFESTS, type ProviderId } from "../providers/index.generated";
 import { PROVIDERS as PROVIDER_BACKENDS } from "../providers/registry";
 import { CARD_PREVIEWS, getCardPreview, setCardPreview } from "../services/cardPreviewService";
+import { getPrintProfilesView, PRINT_PROFILES_VIEWS, setPrintProfilesView } from "../services/printProfilesViewService";
 import { createLog } from "../services/auditLog";
 import { testFlaresolverr } from "../services/flaresolverr";
 import { QUALITY_CHECK_KEYS, type QualityCheckKey } from "../services/meshQuality";
@@ -211,8 +221,22 @@ function requireAdminFor(scope: () => AuthSlot["scope"]) {
     scope() === "instance" ? requireAdmin(req, res, next) : next();
 }
 
+/** Thingport Grab's sign-out: every field of the sign-in empty, and `signed_out_of`, the one Grab last sent. */
+function grabSignOut(body: unknown): string | null {
+  if (!body || typeof body !== "object" || Array.isArray(body)) return null;
+  const { signed_out_of: lastSent, ...fields } = body as Record<string, unknown>;
+  const valid = typeof lastSent === "string" && lastSent.length > 0 && lastSent.length <= 20_000;
+  return valid && Object.values(fields).every((value) => value == null) ? lastSent : null;
+}
+
 async function saveConnection(req: Request, res: Response, provider: ProviderId, slot: Slot) {
-  res.json(await PROVIDER_BACKENDS[provider].connection[slot]!.save(req.userId!, req.body));
+  const connection = PROVIDER_BACKENDS[provider].connection[slot]!;
+  const lastSent = connection.signOut ? grabSignOut(req.body) : null;
+  if (lastSent && connection.signOut) {
+    res.json(await connection.signOut(req.userId!, lastSent));
+    return;
+  }
+  res.json(await connection.save(req.userId!, req.body));
 }
 
 router.get(
@@ -404,6 +428,33 @@ router.post(
     void createLog({ userId: req.userId!, action: "file_reuse_changed", details: { mode } });
     if (started)
       void createLog({ userId: req.userId!, action: "file_reuse_backfill_started", details: { by: "switch" } });
+  }),
+);
+
+// Whether a LICENSE.txt is written beside each licensed model's files. Changing it writes or removes them all, in the
+// background: local files only, nothing is asked of any site.
+router.get(
+  "/settings/license-files",
+  requireAdmin,
+  asyncHandler(async (_req, res) => {
+    res.json({ enabled: await getLicenseFiles() });
+  }),
+);
+
+const licenseFilesSchema = z.object({ enabled: z.boolean() });
+router.post(
+  "/settings/license-files",
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const { enabled } = parseBody(licenseFilesSchema, req.body);
+    const previous = await getLicenseFiles();
+    await setLicenseFiles(enabled);
+    // Even when it's unchanged: saving it again finishes a sweep a restart cut short.
+    void syncAllLicenseFiles();
+    if (previous !== enabled) {
+      void createLog({ userId: req.userId!, action: "license_files_changed", details: { enabled } });
+    }
+    res.json({ enabled });
   }),
 );
 
@@ -764,12 +815,27 @@ const slicerSettingsSchema = z.object({
   slicers: z.array(z.enum(SLICER_IDS)).max(SLICER_IDS.length).optional(),
   enable: z.enum(SLICER_IDS).optional(),
   disable: z.enum(SLICER_IDS).optional(),
+  // The others always go through the Bridge, so there's nothing to choose for them.
+  bridge: z.enum(BRIDGEABLE_SLICER_IDS).optional(),
+  unbridge: z.enum(BRIDGEABLE_SLICER_IDS).optional(),
+  adapt: z.enum(SLICER_IDS).optional(),
+  unadapt: z.enum(SLICER_IDS).optional(),
+  // Null: ask which printer when a model is opened adapted in it.
+  printer: z
+    .object({ slicer: z.enum(SLICER_IDS), printer: z.string().trim().min(1).max(200).nullable() })
+    .strict()
+    .optional(),
 });
 router.patch(
   "/settings/slicer",
   asyncHandler(async (req, res) => {
     const body = parseBody(slicerSettingsSchema, req.body);
-    res.json(await setUserSlicerSettings(req.userId!, body));
+    try {
+      res.json(await setUserSlicerSettings(req.userId!, body));
+    } catch (err) {
+      if (err instanceof NotYourPrinterError) throw new HttpError(422, "That printer isn't one of yours.");
+      throw err;
+    }
   }),
 );
 
@@ -916,6 +982,22 @@ router.patch(
   asyncHandler(async (req, res) => {
     const body = parseBody(cardPreviewSchema, req.body);
     res.json({ preview: await setCardPreview(req.userId!, body.preview) });
+  }),
+);
+
+router.get(
+  "/settings/print-profiles-view",
+  asyncHandler(async (req, res) => {
+    res.json({ view: await getPrintProfilesView(req.userId!) });
+  }),
+);
+
+const printProfilesViewSchema = z.object({ view: z.enum(PRINT_PROFILES_VIEWS) });
+router.patch(
+  "/settings/print-profiles-view",
+  asyncHandler(async (req, res) => {
+    const body = parseBody(printProfilesViewSchema, req.body);
+    res.json({ view: await setPrintProfilesView(req.userId!, body.view) });
   }),
 );
 

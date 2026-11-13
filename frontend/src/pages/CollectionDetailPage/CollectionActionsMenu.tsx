@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { forwardRef, useImperativeHandle, useState } from "react";
 import { useTranslation } from "react-i18next";
 import IconButton from "@mui/material/IconButton";
 import Menu from "@mui/material/Menu";
@@ -14,19 +14,28 @@ import DownloadIcon from "@mui/icons-material/Download";
 import BookmarkIcon from "@mui/icons-material/Bookmark";
 import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
 import SyncIcon from "@mui/icons-material/Sync";
-import SyncDisabledIcon from "@mui/icons-material/SyncDisabled";
+import GroupAddOutlinedIcon from "@mui/icons-material/GroupAddOutlined";
 import type { SxProps, Theme } from "@mui/material/styles";
 import { UnauthorizedError } from "../../api/client";
-import { type Collection, type CollectionInput, collectionsApi } from "../../api/collections";
+import {
+  type Collection,
+  type CollectionInput,
+  type CollectionSharingPatch,
+  collectionsApi,
+  withSharing,
+} from "../../api/collections";
 import { useConfirm } from "../../components/ConfirmProvider";
-import { useToast } from "../../components/ToastProvider";
 import DownloadZipConfirmDialog from "../../components/DownloadZipConfirmDialog";
 import CollectionFormModal from "../CollectionsPage/CollectionFormModal";
 import CollectionSyncDialog from "./CollectionSyncDialog";
 import { allProvidersOff, useDisabledProviders } from "../../hooks/useProviders";
-import { importProviderInfo } from "../../constants/importProviders";
-import type { ImportProvider } from "../../api/settings";
 import { reopenContextMenuBelow } from "../../components/Layout/ConfigurationDialog/AppTiles";
+import { useSocialStatus } from "../../hooks/useSocialStatus";
+
+export type CollectionActionsHandle = {
+  /** Opens its form on who it's shared with, as Share… in the menu does. */
+  openShare: () => void;
+};
 
 type Props = {
   collection: Collection;
@@ -41,29 +50,31 @@ type Props = {
 };
 
 /** Shared by the collection detail header and the Collections grid cards. */
-export default function CollectionActionsMenu({
-  collection,
-  onUpdated,
-  onUnauthorized,
-  onDeleted,
-  onBookmarksChanged,
-  triggerSx,
-  contextMenuAt,
-  onContextMenuClose,
-}: Props) {
+const CollectionActionsMenu = forwardRef<CollectionActionsHandle, Props>(function CollectionActionsMenu(
+  {
+    collection,
+    onUpdated,
+    onUnauthorized,
+    onDeleted,
+    onBookmarksChanged,
+    triggerSx,
+    contextMenuAt,
+    onContextMenuClose,
+  },
+  ref,
+) {
   const { t } = useTranslation(["models", "common"]);
   const confirmDialog = useConfirm();
-  const showToast = useToast();
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
-  const [editOpen, setEditOpen] = useState(false);
+  // The form, as Edit opens it, or as Share… does: on who sees it.
+  const [editOpen, setEditOpen] = useState<false | "edit" | "share">(false);
+  const social = useSocialStatus();
+  useImperativeHandle(ref, () => ({ openShare: () => setEditOpen("share") }), []);
   const [deleting, setDeleting] = useState(false);
   const [bookmarking, setBookmarking] = useState(false);
   const [downloadOpen, setDownloadOpen] = useState(false);
   const [syncOpen, setSyncOpen] = useState(false);
   const disabledProviders = useDisabledProviders();
-  const syncedProviderOff = Boolean(
-    collection.sync && disabledProviders.has(collection.sync.provider as ImportProvider),
-  );
 
   const closeMenu = () => {
     setAnchorEl(null);
@@ -91,38 +102,18 @@ export default function CollectionActionsMenu({
     }
   };
 
-  const handleEdit = async (input: CollectionInput) => {
+  const handleEdit = async (input: CollectionInput, sharing: CollectionSharingPatch | null) => {
     try {
-      onUpdated(await collectionsApi.update(collection.id, input));
+      const updated = await collectionsApi.update(collection.id, input);
+      // Saved, whatever becomes of who sees it.
+      onUpdated(updated);
+      if (sharing) onUpdated(withSharing(updated, await collectionsApi.updateSharing(collection.id, sharing)));
     } catch (err) {
       if (err instanceof UnauthorizedError) {
         onUnauthorized?.();
         return;
       }
       throw err;
-    }
-  };
-
-  // Synced with a provider an admin turned off: nothing to configure until it's back on, but it can still be unsynced.
-  const handleStopSync = async () => {
-    closeMenu();
-    const ok = await confirmDialog({
-      title: t("models:collections.sync.stopTitle"),
-      message: t("models:collections.sync.stopMessage", { name: collection.name }),
-      confirmLabel: t("models:collections.sync.stop"),
-      destructive: true,
-    });
-    if (!ok) return;
-    try {
-      await collectionsApi.stopSync(collection.id);
-      showToast({ message: t("models:collections.sync.stopped", { name: collection.name }) });
-      onUpdated({ ...collection, sync: null });
-    } catch (err) {
-      if (err instanceof UnauthorizedError) {
-        onUnauthorized?.();
-        return;
-      }
-      showToast({ message: err instanceof Error ? err.message : String(err), severity: "error" });
     }
   };
 
@@ -196,7 +187,7 @@ export default function CollectionActionsMenu({
         <MenuItem
           onClick={() => {
             closeMenu();
-            setEditOpen(true);
+            setEditOpen("edit");
           }}
         >
           <ListItemIcon>
@@ -204,6 +195,19 @@ export default function CollectionActionsMenu({
           </ListItemIcon>
           <ListItemText>{t("common:edit")}</ListItemText>
         </MenuItem>
+        {social?.enabled && (
+          <MenuItem
+            onClick={() => {
+              closeMenu();
+              setEditOpen("share");
+            }}
+          >
+            <ListItemIcon>
+              <GroupAddOutlinedIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>{t("models:collections.share")}</ListItemText>
+          </MenuItem>
+        )}
         <MenuItem onClick={handleDelete}>
           <ListItemIcon>
             <DeleteIcon fontSize="small" color="error" />
@@ -212,41 +216,32 @@ export default function CollectionActionsMenu({
         </MenuItem>
         {/* Menu needs its items as direct children, not wrapped in a fragment. */}
         {/* Every collection can be synced; an unsynced one opens on Browse. With every provider turned off there's
-            nothing to sync a new one with, but a synced one can still be looked at or unsynced. */}
-        {(collection.sync || !allProvidersOff(disabledProviders)) && [
+            nothing to sync a new one with, but its sources can still be looked at or stopped. */}
+        {(collection.syncs.length > 0 || !allProvidersOff(disabledProviders)) && [
           <Divider key="sync-divider" />,
-          syncedProviderOff ? (
-            <MenuItem key="sync" onClick={handleStopSync}>
-              <ListItemIcon>
-                <SyncDisabledIcon fontSize="small" />
-              </ListItemIcon>
-              <ListItemText
-                secondary={t("models:collections.sync.menuProviderOff", {
-                  provider: importProviderInfo(collection.sync!.provider)?.label ?? collection.sync!.provider,
-                })}
-              >
-                {t("models:collections.sync.stop")}
-              </ListItemText>
-            </MenuItem>
-          ) : (
-            <MenuItem
-              key="sync"
-              onClick={() => {
-                closeMenu();
-                setSyncOpen(true);
-              }}
-            >
-              <ListItemIcon>
-                <SyncIcon fontSize="small" />
-              </ListItemIcon>
-              <ListItemText>{t("models:collections.sync.menu")}</ListItemText>
-            </MenuItem>
-          ),
+          <MenuItem
+            key="sync"
+            onClick={() => {
+              closeMenu();
+              setSyncOpen(true);
+            }}
+          >
+            <ListItemIcon>
+              <SyncIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>{t("models:collections.sync.menu")}</ListItemText>
+          </MenuItem>,
         ]}
       </Menu>
 
       {editOpen && (
-        <CollectionFormModal collection={collection} onClose={() => setEditOpen(false)} onSubmit={handleEdit} />
+        <CollectionFormModal
+          collection={collection}
+          share={editOpen === "share"}
+          onClose={() => setEditOpen(false)}
+          onSubmit={handleEdit}
+          onUnauthorized={onUnauthorized}
+        />
       )}
 
       {syncOpen && (
@@ -268,4 +263,6 @@ export default function CollectionActionsMenu({
       />
     </>
   );
-}
+});
+
+export default CollectionActionsMenu;

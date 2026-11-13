@@ -18,6 +18,7 @@ import { socialApi, type RemoteModel } from "../../../api/social";
 import InstanceChip from "../../../components/InstanceChip";
 import { usePageHeader } from "../../../components/Layout/PageHeaderContext";
 import MarkdownDescription from "../../../components/MarkdownDescription";
+import LicenseStrip from "../../../components/license/LicenseStrip";
 import { useToast } from "../../../components/ToastProvider";
 import UserAvatar from "../../../components/UserAvatar";
 import { switchSlicer } from "../../../hooks/useSlicerPreference";
@@ -99,6 +100,7 @@ export default function ElsewhereModelPage({ onUnauthorized }: { onUnauthorized?
                 index: position,
                 plate: null,
                 size: file.size,
+                folder: file.folder ?? null,
               },
             ]
           : [],
@@ -304,6 +306,16 @@ export default function ElsewhereModelPage({ onUnauthorized }: { onUnauthorized?
           )}
 
           {model.description && <MarkdownDescription markdown={model.description} remote />}
+
+          {model.license !== undefined && (
+            <LicenseStrip
+              variant="standalone"
+              license={model.license}
+              loading={false}
+              provider={model.source_provider}
+              credit={{ title: model.title, creator: model.creator, sourceUrl: model.source_url }}
+            />
+          )}
 
           {model.collections.length > 0 && (
             <Box>

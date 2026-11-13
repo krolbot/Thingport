@@ -1,3 +1,4 @@
+import { afterLicenseChange } from "./licenseService";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { Prisma, type Plate, type PreviewImage, type Print } from "@prisma/client";
@@ -189,11 +190,18 @@ export async function mergeModels(
 
         const keptPlates = platesOf(primary.id);
         let position = (keptPlates.at(-1)?.position ?? -1) + 1;
-        const names = new Set(keptPlates.map((plate) => plate.filename.toLowerCase()));
+        // Names are unique within a folder, and each plate keeps its own.
+        const names = new Map<string, Set<string>>();
+        const namesIn = (folder: string | null) => {
+          const taken = names.get(folder ?? "") ?? new Set<string>();
+          names.set(folder ?? "", taken);
+          return taken;
+        };
+        for (const plate of keptPlates) namesIn(plate.folder).add(plate.filename.toLowerCase());
         const instances = new Set(keptPlates.flatMap((plate) => plate.sourceInstanceId ?? []));
         for (const plate of otherIds.flatMap((id) => platesOf(id))) {
-          const filename = freePlateFilename(plate.filename, names);
-          names.add(filename.toLowerCase());
+          const filename = freePlateFilename(plate.filename, namesIn(plate.folder));
+          namesIn(plate.folder).add(filename.toLowerCase());
           const instance =
             plate.sourceInstanceId && !instances.has(plate.sourceInstanceId) ? plate.sourceInstanceId : null;
           if (instance) instances.add(instance);
@@ -290,6 +298,8 @@ export async function mergeModels(
     await leadWithAdoptedCover(primary, home, kept.plates[0], cover).catch(didNot("take on its new cover"));
     await relocatePrint(kept, kept.plates).catch(didNot("move its files where the storage structure puts them"));
   }
+  // The merged models' LICENSE.txt files came along with their other files: only the kept model's licence stays.
+  await afterLicenseChange(primary.id);
   await pruneDescriptionImages(primary.id).catch(didNot("remove description images nothing uses"));
   await pruneWhatModelsLeft(userId, others).catch(didNot("tidy what the merged models left"));
   return { primary, merged: others };

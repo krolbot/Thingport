@@ -370,7 +370,7 @@ describe("Explore with partners", () => {
         userId: shelver.id,
         name: `C${n}`,
         nameNormalized: `c${n}`,
-        isPublic: true,
+        visibility: "PUBLIC",
       })),
     });
     const page = await request(app).get(`/api/explore/user/${shelver.id}`).set(auth(viewer));
@@ -421,14 +421,15 @@ describe("Explore with partners", () => {
     expect(remoteFiles.body.files).toEqual([
       {
         name: "bin.3mf",
+        folder: null,
         size: 1800,
         media_type: "model/3mf",
         // By a key from its address at the partner, so a reordered list never serves another file.
         url: `/explore/elsewhere/model/${filesModelId}/files/${fileKey(`${PARTNER}/api/ap/files/plate/p1/bin.3mf`)}/bin.3mf`,
       },
-      { name: "notes.pdf", size: 20, media_type: "application/pdf", url: null },
+      { name: "notes.pdf", folder: null, size: 20, media_type: "application/pdf", url: null },
       // Somewhere other than the partner's own origin: never fetched.
-      { name: "elsewhere.stl", size: 30, media_type: null, url: null },
+      { name: "elsewhere.stl", folder: null, size: 30, media_type: null, url: null },
     ]);
     // A key for no file it shares, or for one that isn't on its origin, is never fetched.
     for (const key of ["0", "x", fileKey("http://198.51.100.9/api/ap/files/plate/p2/elsewhere.stl")]) {
@@ -729,7 +730,7 @@ describe("keeping it current", () => {
     const collector = await register("Collector");
     const make = (name: string) =>
       prisma.collection.create({
-        data: { userId: collector.id, name, nameNormalized: name.toLowerCase(), isPublic: true },
+        data: { userId: collector.id, name, nameNormalized: name.toLowerCase(), visibility: "PUBLIC" },
         select: { id: true },
       });
     const shelves = [];
@@ -776,7 +777,7 @@ describe("keeping it current", () => {
     expect(rest.next).toBeUndefined();
     expect(new Set([...full["thingport:models"].first.orderedItems, ...rest.orderedItems]).size).toBe(parts.length);
     // A private one's aren't given.
-    await prisma.collection.update({ where: { id: shelves[0].id }, data: { isPublic: false } });
+    await prisma.collection.update({ where: { id: shelves[0].id }, data: { visibility: "PRIVATE" } });
     expect(await collectionModelsPage(shelves[0].id, 0)).toBeNull();
   });
 

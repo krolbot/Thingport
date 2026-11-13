@@ -78,7 +78,7 @@ export default async function mount(thingport) {
       collectionId: collection.id,
       files: [{ name: \`\${name.value}.stl\`, data: stl }],
     });
-    ui.toast(t("save.done", { name: model.name }), "success");
+    ui.toast(t("save.done", { name: model.name }), "success", { openModel: model.id }); // with an Open button
   });
 
   root.querySelector("#download").addEventListener("click", () => {
@@ -129,8 +129,9 @@ say so.
   \`.yours-button { color: … }\` and quietly wins, so wrap such a reset in \`:where()\`.
 - Clean up in the returned function: timers, \`window\` listeners, observers, WebGL contexts.
 - Use \`thingport.fetch\` for anything outside Thingport, and list each host in the metadata.
-- Change the user's library only when they ask, and say what you did with \`ui.toast\`. Ask with \`ui.confirm\`
-  before anything that can't be undone.
+- Change the user's library only when they ask, and say what you did with \`ui.toast\`. A toast about a model you
+  saved or changed passes \`{ openModel: model.id }\`, for an Open button. Ask with \`ui.confirm\` before anything
+  that can't be undone.
 - Take colours from the theme or the \`--tp-*\` variables, and check both themes. Never hard-code a hex colour.
 - Keep it dense and scannable: short labels, tight spacing, an explanation behind a \`?\` rather than a paragraph in
   the window. Secondary actions belong in a menu behind a \`⋮\` button.
@@ -151,7 +152,7 @@ its ⋮ menu has **About**, **Edit** and **Delete**. To change a tool, read what
 
 ## Sharing it
 
-To offer a tool to every Thingport, open a pull request to the Thingport repository: a folder \`tools/<slug>/\` with
+To offer a tool to every Thingport instance, open a pull request to the Thingport repository: a folder \`tools/<slug>/\` with
 \`tool.json\` (or \`tool.yml\`), \`tool.js\`, optionally \`tool.html\`, \`locales/<code>.json\` for each language its
 metadata names, a \`README.md\` saying what it does and what it reaches, and optional \`screenshots/\`. Add the slug
 to \`tools/index.json\`. A maintainer reads the code before it is merged; see \`docs/guides/tools.md\` and

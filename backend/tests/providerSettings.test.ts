@@ -46,6 +46,9 @@ afterAll(async () => {
     "cgtrader",
     "grabcad",
     "meshy",
+    "pixup3d",
+    "fab365",
+    "threedexport",
   ] as const)
     await setProviderEnabled(provider, true);
 });
@@ -73,6 +76,9 @@ describe("turning providers off", () => {
       cgtrader: true,
       grabcad: true,
       meshy: true,
+      pixup3d: true,
+      fab365: true,
+      threedexport: true,
     });
 
     expect(
@@ -103,6 +109,9 @@ describe("turning providers off", () => {
       cgtrader: true,
       grabcad: true,
       meshy: true,
+      pixup3d: true,
+      fab365: true,
+      threedexport: true,
     });
   });
 
@@ -221,7 +230,7 @@ describe("turning providers off", () => {
     expect(res.body).toMatchObject({ code: "provider_disabled" });
     // Not marked as checked: the click didn't start anything.
     expect(
-      (await prisma.collectionSync.findUnique({ where: { collectionId: collection.id } }))?.lastCheckedAt,
+      (await prisma.collectionSync.findFirst({ where: { collectionId: collection.id } }))?.lastCheckedAt,
     ).toBeNull();
   });
 
@@ -242,7 +251,7 @@ describe("turning providers off", () => {
     await setProviderEnabled("printables", false);
     const res = await request(app).delete(`/api/collection/${collection.id}/sync`).set(as(member));
     expect(res.status).toBeLessThan(300);
-    expect(await prisma.collectionSync.findUnique({ where: { collectionId: collection.id } })).toBeNull();
+    expect(await prisma.collectionSync.findFirst({ where: { collectionId: collection.id } })).toBeNull();
     await setProviderEnabled("printables", true);
   });
 

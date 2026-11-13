@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import Paper from "@mui/material/Paper";
@@ -23,6 +23,9 @@ import LibraryAddOutlinedIcon from "@mui/icons-material/LibraryAddOutlined";
 import LibraryAddCheckOutlinedIcon from "@mui/icons-material/LibraryAddCheckOutlined";
 import CircularProgress from "@mui/material/CircularProgress";
 import type { Print } from "../../api/prints";
+import { categoriesApi, type Category } from "../../api/categories";
+import { translateCategoryDisplay } from "../../utils/translateCategoryDisplay";
+import { FALLBACK_LANGUAGE, matchLanguage } from "../../constants/languages";
 import { aiCategorizationApi } from "../../api/aiCategorization";
 import { UnauthorizedError } from "../../api/client";
 import { useToast } from "../../components/ToastProvider";
@@ -35,11 +38,14 @@ import { useDownloadPrint } from "./useDownloadPrint";
 import { useOpenInSlicer } from "./useOpenInSlicer";
 import { useOpenInStudio } from "./useOpenInStudio";
 import { hasGeneratorScript, useCustomize } from "./useCustomize";
-import NormalizedOpenButton from "./NormalizedOpenButton";
+import AdaptedOpenButton from "./AdaptedOpenButton";
 import CopiedFromRemote from "./CopiedFromRemote";
 import ModelFileSelect from "./ModelFileSelect";
+import PrintProfilesSection from "./PrintProfiles";
+import type { ProfileEntry } from "./PrintProfiles/entries";
+import type { PrintProfilesView } from "../../api/settings";
 import OpenInSlicerButton from "./OpenInSlicerButton";
-import { useNormalizedOpen } from "./useNormalizedOpen";
+import { useAdaptedOpen } from "./useAdaptedOpen";
 import AddToCollectionModal from "./AddToCollectionModal";
 import RollingNumber from "../../components/RollingNumber";
 import { formatFileSize } from "../../utils/fileSize";
@@ -84,6 +90,15 @@ type Props = {
   onUpdated?: (print: Print) => void;
   /** Shown as the author of a direct upload, which has none. */
   viewer?: AuthUser | null;
+  /** The model's print profiles, the designer's first; empty for a model without (or from an older backend). */
+  profileEntries?: ProfileEntry[] | null;
+  /** How to show them: null while the setting loads, "off" as plain files. */
+  profilesView?: PrintProfilesView | null;
+  /** The file every action applies to, when the page keeps it (so the 3D preview opens on it too). */
+  selectedKey?: string | null;
+  onSelectKey?: (key: string) => void;
+  /** Opens the 3D preview on one of a profile's build plates. */
+  onPreviewPlate?: (key: string, plateIndex: number) => void;
 };
 
 /** The detail page's sticky summary card. */
@@ -95,8 +110,35 @@ export default function ModelSidePanel({
   onUnauthorized,
   onUpdated,
   viewer,
+  profileEntries,
+  profilesView,
+  selectedKey: pageSelectedKey,
+  onSelectKey,
+  onPreviewPlate,
 }: Props) {
-  const { t } = useTranslation(["models", "common"]);
+  const { t, i18n } = useTranslation(["models", "common"]);
+  const [category, setCategory] = useState<Category | null>(null);
+  // Only a starter category's name has translations, and English needs none, so English skips the request.
+  const translating = matchLanguage(i18n.language) !== FALLBACK_LANGUAGE;
+  useEffect(() => {
+    if (!print.category_id || !translating) return;
+    let active = true;
+    void categoriesApi.listShared(print.category_id).then(
+      (categories) => {
+        if (active) setCategory(categories.find((item) => item.id === print.category_id) ?? null);
+      },
+      () => {
+        if (active) setCategory(null);
+      },
+    );
+    return () => {
+      active = false;
+    };
+  }, [print.category_id, translating]);
+  const categoryName =
+    translating && category && category.id === print.category_id && category.name === print.category_name
+      ? translateCategoryDisplay(category, i18n).name
+      : print.category_name;
   const navigate = useNavigate();
   const showToast = useToast();
   const [suggestionBusy, setSuggestionBusy] = useState(false);
@@ -106,16 +148,25 @@ export default function ModelSidePanel({
   const viewerAvatarUrl = viewer?.avatar_url;
   const { downloading, downloadFile, downloadAllZip, recordUse } = useDownloadPrint(print, onUnauthorized, onUpdated);
 
-  const { slicerOption, slicerOptions, files, canOpen, normalizedTargetFor } = useOpenInSlicer(print);
-  // Every action below applies to this file; the first until one is picked.
-  const [selectedKey, setSelectedKey] = useState<string | null>(null);
-  const selectedFile = files.find((file) => file.key === selectedKey) ?? files[0] ?? null;
-  const normalizedTarget = normalizedTargetFor(selectedFile);
+  const { slicerOption, slicerOptions, files, canOpen, adaptedTargetFor } = useOpenInSlicer(print);
+  // Every action below applies to this file; until one is picked, the first profile (the designer's, where there is
+  // one), else the first file.
+  const [ownSelectedKey, setOwnSelectedKey] = useState<string | null>(null);
+  const selectedKey = onSelectKey ? (pageSelectedKey ?? null) : ownSelectedKey;
+  const selectKey = onSelectKey ?? setOwnSelectedKey;
+  const entries = profileEntries ?? [];
+  const profilesShown = entries.length > 0 && !!profilesView && profilesView !== "off";
+  // The setting isn't known yet: a placeholder, rather than files that turn into profiles a moment later.
+  const profilesUnsettled = entries.length > 0 && profilesView == null;
+  const firstProfileFile = profilesShown ? files.find((file) => file.key === entries[0].key) : undefined;
+  const selectedFile = files.find((file) => file.key === selectedKey) ?? firstProfileFile ?? files[0] ?? null;
+  const otherFiles = profilesShown ? files.filter((file) => !entries.some((entry) => entry.key === file.key)) : [];
+  const adaptedTarget = adaptedTargetFor(selectedFile);
 
   // A 3D file of the model's own, while the instance has Studio on, opens there as a new design.
   const studio = useOpenInStudio(print, onUnauthorized);
   const studioPlate = studio.files.find((plate) => plate.id === selectedFile?.plate?.id) ?? null;
-  const normalized = useNormalizedOpen(print.id, recordUse, onUnauthorized);
+  const adapted = useAdaptedOpen(print.id, slicerOption?.id ?? null, recordUse, onUnauthorized);
   // Opened from the button below rather than a menu, so there is no menu to close.
   const customize = useCustomize(print, () => {}, onUnauthorized);
   // Another user's model, from one of their public collections.
@@ -205,12 +256,14 @@ export default function ModelSidePanel({
         top: "var(--topbar-height, 80px)",
       }}
     >
-      <Stack spacing={2}>
-        <Box>
+      {/* Flex gap rather than margins: a part hidden at this size takes no room. */}
+      <Stack spacing={2} useFlexGap>
+        {/* Below md the page is one column and the header cuts a long name short (phones can't hover for the whole
+            of it), so the full name shows here; wider screens give the header the room. */}
+        <Box sx={{ display: { xs: "block", md: "none" } }}>
           <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
             {t("models:detail.title")}
           </Typography>
-          {/* Full title, wrapped -- unlike the page header, this box never truncates it. */}
           <Typography
             variant="body2"
             sx={{ color: (muiTheme) => muiTheme.thingport.headingText, overflowWrap: "anywhere" }}
@@ -218,7 +271,6 @@ export default function ModelSidePanel({
             {print.title || print.name}
           </Typography>
         </Box>
-
         {print.copied_from_remote && <CopiedFromRemote origin={print.copied_from_remote} />}
 
         {owner && (
@@ -305,7 +357,7 @@ export default function ModelSidePanel({
             >
               <FolderIcon fontSize="small" />
               <Typography variant="body2" fontWeight={600}>
-                {print.category_name}
+                {categoryName}
               </Typography>
               {print.category_source === "ai" && (
                 <Chip size="small" label={t("models:aiCategorization.byAi")} color="secondary" variant="outlined" />
@@ -458,8 +510,22 @@ export default function ModelSidePanel({
           </Stack>
         )}
 
-        {selectedFile && files.length > 1 && (
-          <ModelFileSelect files={files} selected={selectedFile} onSelect={(file) => setSelectedKey(file.key)} />
+        {profilesShown ? (
+          <PrintProfilesSection
+            view={profilesView}
+            entries={entries}
+            otherFiles={otherFiles}
+            selectedKey={selectedFile?.key ?? null}
+            onSelect={selectKey}
+            onPreviewPlate={onPreviewPlate}
+          />
+        ) : profilesUnsettled ? (
+          <Skeleton variant="rounded" height={58} sx={{ borderRadius: 2 }} />
+        ) : (
+          selectedFile &&
+          files.length > 1 && (
+            <ModelFileSelect files={files} selected={selectedFile} onSelect={(file) => selectKey(file.key)} />
+          )
         )}
         {selectedFile && (
           <OpenInSlicerButton
@@ -481,15 +547,16 @@ export default function ModelSidePanel({
             openingInStudio={studio.opening}
           />
         )}
-        {slicerOption && normalizedTarget && (
-          <NormalizedOpenButton
-            targets={[normalizedTarget]}
+        {slicerOption && adaptedTarget && (
+          <AdaptedOpenButton
+            targets={[adaptedTarget]}
             slicerLabel={slicerOption.label}
-            stateOf={normalized.stateOf}
-            open={normalized.open}
+            stateOf={adapted.stateOf}
+            open={adapted.open}
             onPick={() => {}}
           />
         )}
+        {adapted.dialog}
 
         {/* Another user's model counts their views and prints, not the viewer's: its collections sit by the copy. */}
         {!owner && (

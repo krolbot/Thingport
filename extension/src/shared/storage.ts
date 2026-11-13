@@ -16,6 +16,9 @@ export const STORAGE_KEYS = {
   normalizeMakerworld: "normalizeMakerworld",
   thingiverseDark: "thingiverseDark",
   thingiverseHideAds: "thingiverseHideAds",
+  // The popup's Bubble tab (see shared/bubble.ts); unset means today's white bubble, bottom right.
+  bubbleStyle: "bubbleStyle",
+  bubblePlace: "bubblePlace",
   // From the last login: admins get "Add to the queue" in the import panel.
   isAdmin: "isAdmin",
   // Whether the instance gives everyone an import queue of their own, as its health check said at the last sign-in:
@@ -52,6 +55,8 @@ export type StoredConfig = {
   normalizeMakerworld?: boolean;
   thingiverseDark?: boolean;
   thingiverseHideAds?: boolean;
+  bubbleStyle?: string;
+  bubblePlace?: string;
   isAdmin?: boolean;
   importQueue?: boolean;
   token?: string;
@@ -73,7 +78,7 @@ export type ProviderTabs = Partial<Record<number, ProviderId>>;
 
 /** What works without a Thingport instance, and whether each is on until the user says otherwise. */
 export const OFFLINE_FEATURE_DEFAULTS = {
-  // The "Download normalized" button on MakerWorld.
+  // The "Download adapted" button on MakerWorld.
   normalizeMakerworld: true,
   // Restyles Thingiverse, which has no dark theme of its own, while the system theme is dark.
   thingiverseDark: true,

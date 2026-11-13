@@ -5,6 +5,7 @@ import { z } from "zod";
 import { prisma } from "../db";
 import { requireAuth } from "../auth";
 import { HttpError, sanitizeFilename } from "../utils/fileUtils";
+import { normalizeFolder } from "../utils/fileFolder";
 import { normalizeTags } from "../utils/tagNormalization";
 import { parseBody } from "../utils/validate";
 import { asyncHandler } from "../utils/asyncHandler";
@@ -25,16 +26,30 @@ import { notifyUpload, type UploadOrigin } from "../services/modelNotifications"
 import { fillSourceGaps } from "../services/fillGapsService";
 import { linkPrintToSource } from "../services/modelLinkService";
 import { deletePrint, setPrintTags, updatePrintMeta } from "../services/printEditService";
-import { isNormalizable3mf, normalize3mfStatus, normalized3mfFor } from "../services/normalized3mfCache";
+import { adapt3mfStatus, adapted3mfFor, isAdaptable3mf } from "../services/adapted3mfCache";
+import { ensurePlateFormat, fillPlateFormats } from "../services/threeMfFormat";
+import { planAdaptation, slicerProfile, type AdaptPlan, type PrinterRecipe } from "../adapter";
+import { printerTarget } from "../printers/targets";
 import {
   listPrints,
   listPrintSources,
   listTagsOf,
+  licenseAllowsFromQuery,
   parseSortMode,
   splitList,
   type PrintFilters,
 } from "../services/printQuery";
 import { printQuality, startPrintQualityCheck } from "../services/modelQualityService";
+import { printProfilesOut, profileFillRunning, startProfileFill } from "../services/printProfileService";
+import { licenseById, PICKABLE_LICENSE_IDS } from "../services/licenseCatalog";
+import {
+  afterLicenseChange,
+  licensePending,
+  printLicenseState,
+  retryLicenseFill,
+  startLicenseFill,
+  type PrintLicenseState,
+} from "../services/licenseService";
 import { readableCollection, readablePrintOutById, readablePrintWhere, withOwners } from "../services/socialService";
 
 const router = Router();
@@ -51,6 +66,8 @@ function printFiltersFromQuery(req: Request): PrintFilters {
     tags: splitList(req.query.tags),
     generative: req.query.generative === "1" || req.query.generative === "true",
     excludeProviders: splitList(req.query.hide_providers),
+    licenseAllows: licenseAllowsFromQuery(splitList(req.query.license_allows)),
+    licensed: req.query.licensed === "1" || req.query.licensed === "true",
   };
 }
 
@@ -204,6 +221,11 @@ router.get(
       where: { id: req.params.id, userId: req.userId },
       data: { viewCount: { increment: 1 }, lastViewedAt: new Date() },
     });
+    // An older 3MF's kind, read once, so the page knows which slicers get an adapted copy of it.
+    await fillPlateFormats(
+      { printId: req.params.id, print: await readablePrintWhere(req.userId!) },
+      resolvePlateFilePath,
+    );
     res.json(await readablePrintOutById(req.userId!, req.params.id));
   }),
 );
@@ -224,6 +246,110 @@ router.post(
     const quality = await startPrintQualityCheck(req.userId!, req.params.id);
     if (!quality) throw new HttpError(404, "Print not found");
     res.json(quality);
+  }),
+);
+
+// Print profiles: the model page reads them, starts reading what an older import never kept, and polls.
+async function readableProfiles(userId: string, printId: string) {
+  const print = await prisma.print.findFirst({
+    where: { id: printId, AND: [await readablePrintWhere(userId)] },
+    select: { id: true, userId: true, sourceProvider: true },
+  });
+  if (!print) throw new HttpError(404, "Print not found");
+  const plates = await prisma.plate.findMany({
+    where: { printId, sourceInstanceId: { not: null } },
+    select: { id: true, sourceInstanceId: true, profile: true, updatedAt: true, storagePath: true, sourcePath: true },
+  });
+  return { print, plates };
+}
+
+router.get(
+  "/print/:id/profiles",
+  asyncHandler(async (req, res) => {
+    // Before what's stored is read: see printProfilesOut.
+    const filling = profileFillRunning(req.params.id);
+    const { print, plates } = await readableProfiles(req.userId!, req.params.id);
+    res.json(await printProfilesOut(print, plates, filling));
+  }),
+);
+
+// The owner's only: someone else's shared model shows what its owner's library has kept.
+router.post(
+  "/print/:id/profiles/fill",
+  asyncHandler(async (req, res) => {
+    const filling = profileFillRunning(req.params.id);
+    const { print, plates } = await readableProfiles(req.userId!, req.params.id);
+    if (print.userId !== req.userId) throw new HttpError(404, "Print not found");
+    const before = await printProfilesOut(print, plates, filling);
+    if (before.pending) startProfileFill(print.id);
+    res.json({ ...before, filling: filling || profileFillRunning(print.id) });
+  }),
+);
+
+// The licences an owner can pick for a model in Edit model.
+router.get(
+  "/licenses",
+  asyncHandler(async (_req, res) => {
+    res.json(
+      PICKABLE_LICENSE_IDS.map((id) => {
+        const license = licenseById(id)!;
+        return {
+          id: license.id,
+          short: license.short,
+          name: license.name,
+          url: license.url,
+          family: license.family,
+          marks: license.marks,
+          allows: license.allows,
+          requires: { credit: license.requires.credit, same_license: license.requires.sameLicense },
+        };
+      }),
+    );
+  }),
+);
+
+async function readableLicense(userId: string, printId: string) {
+  const print = await prisma.print.findFirst({
+    where: { id: printId, AND: [await readablePrintWhere(userId)] },
+    select: {
+      id: true,
+      userId: true,
+      license: true,
+      licenseReadAt: true,
+      sourceProvider: true,
+      sourceExternalId: true,
+    },
+  });
+  if (!print) throw new HttpError(404, "Print not found");
+  return print;
+}
+
+const licenseStateOut = (state: PrintLicenseState) => ({
+  license: state.license,
+  pending: state.pending,
+  filling: state.filling,
+  failed: state.failed,
+});
+
+router.get(
+  "/print/:id/license",
+  asyncHandler(async (req, res) => {
+    res.json(licenseStateOut(printLicenseState(await readableLicense(req.userId!, req.params.id))));
+  }),
+);
+
+// The owner's only, as with print profiles: someone else's shared model shows what its owner's library kept.
+// `retry`: its owner asked again after a read failed, which is otherwise tried again only after a while.
+const licenseFillSchema = z.object({ retry: z.boolean().optional() });
+router.post(
+  "/print/:id/license/fill",
+  asyncHandler(async (req, res) => {
+    const { retry } = parseBody(licenseFillSchema, req.body ?? {});
+    const print = await readableLicense(req.userId!, req.params.id);
+    if (print.userId !== req.userId) throw new HttpError(404, "Print not found");
+    if (retry) retryLicenseFill(print);
+    else if (licensePending(print)) startLicenseFill(print.id);
+    res.json(licenseStateOut(printLicenseState(print)));
   }),
 );
 
@@ -290,7 +416,11 @@ const downloadFilterSchema = z.object({
   category_id: z.string().optional(),
   collection_id: z.string().optional(),
 });
-const downloadSchema = downloadFilterSchema.extend({ filename: z.string().optional() });
+const downloadSchema = downloadFilterSchema.extend({
+  filename: z.string().optional(),
+  // Only the models' files in this folder and the folders in it (PlateOut.folder), as one folder of a model downloads.
+  folder: z.string().max(1000).optional(),
+});
 
 function assertDownloadFilterGiven(body: z.infer<typeof downloadFilterSchema>): void {
   if (!(body.print_ids?.length || body.tag || body.category_id || body.collection_id)) {
@@ -338,46 +468,121 @@ router.post(
         downloadName = `${safeName}.zip`;
       }
     }
-    await sendPrintsZip(res, prints, downloadName, { flatten });
+    // A folder that names none (".", "..") would otherwise mean every file.
+    const folder = normalizeFolder(body.folder);
+    if (body.folder && !folder) throw new HttpError(400, "That isn't a folder a model's files can be in");
+    await sendPrintsZip(res, prints, downloadName, { flatten, folder });
   }),
 );
+
+async function readablePlate(req: Request) {
+  const plate = await prisma.plate.findFirst({
+    where: { id: req.params.plateId, printId: req.params.id, print: await readablePrintWhere(req.userId!) },
+    include: { print: { select: { preparedMetadata: true } } },
+  });
+  if (!plate) throw new HttpError(404, "Not found");
+  const filePath = resolvePlateFilePath(plate);
+  if (!filePath) throw new HttpError(404, "Not found");
+  return { plate, filePath };
+}
+
+type ReadablePlate = Awaited<ReturnType<typeof readablePlate>>["plate"];
+
+/** Whether the plate is a 3MF a copy can be made of: never a sliced print, whose G-code would be dropped. */
+function adaptable(plate: ReadablePlate): boolean {
+  return plate.print.preparedMetadata === null && isAdaptable3mf(plate.filename);
+}
+
+type PrinterAsked = { id: string; nozzle: string } | null;
+type Adaptation = { plan: AdaptPlan; printer: PrinterRecipe | null };
+
+/** The copy of the plate to open in `slicer` (src/adapter/plan.ts), or null to open the plate itself. With a printer
+ *  the slicer has a preset for, the copy is made for that printer. */
+async function adaptPlanFor(
+  plate: ReadablePlate,
+  filePath: string,
+  slicer: unknown,
+  printer: PrinterAsked = null,
+): Promise<Adaptation | null> {
+  if (!adaptable(plate) || typeof slicer !== "string") return null;
+  const target = printer ? printerTarget(slicer, printer.id, printer.nozzle) : null;
+  const plan = planAdaptation(await ensurePlateFormat(plate, filePath), slicerProfile(slicer), target?.choice);
+  if (!plan) return null;
+  return { plan, printer: plan.output === "bambu" && plan.printer && target ? target.recipe : null };
+}
+
+const printerAskedSchema = z
+  .object({ id: z.string().regex(/^[a-z0-9-]{1,120}$/), nozzle: z.string().regex(/^[A-Za-z]{0,3}\d+(\.\d+)?$/) })
+  .strict();
+
+// What a page loaded before "Open adapted" asked for with "Open normalized": the copy PrusaSlicer gets, nearest to
+// it, for the same files (a Bambu layout project, never a print).
+const NORMALIZED_FOR = "prusaslicer";
+
+function sendPlateFile(res: Response, plate: ReadablePlate, filePath: string) {
+  res.setHeader("Content-Type", plate.mime || "application/octet-stream");
+  res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(plate.filename)}"`);
+  res.setHeader("Cache-Control", "private, max-age=86400");
+  res.sendFile(path.resolve(filePath));
+}
 
 router.get(
   "/print/:id/plate/:plateId/file/:filename",
   asyncHandler(async (req, res) => {
-    const plate = await prisma.plate.findFirst({
-      where: { id: req.params.plateId, printId: req.params.id, print: await readablePrintWhere(req.userId!) },
-      include: { print: { select: { preparedMetadata: true } } },
-    });
-    if (!plate) throw new HttpError(404, "Not found");
-    let filePath = resolvePlateFilePath(plate);
-    if (!filePath) throw new HttpError(404, "Not found");
-    // Only "Open normalized in <slicer>" asks for it; a plate that is itself a sliced print is never touched.
-    if (req.query.normalize === "1" && plate.print.preparedMetadata === null && isNormalizable3mf(plate.filename)) {
-      filePath = (await normalized3mfFor(plate.id, filePath)) ?? filePath;
-    }
-    res.setHeader("Content-Type", plate.mime || "application/octet-stream");
-    res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(plate.filename)}"`);
-    res.setHeader("Cache-Control", "private, max-age=86400");
-    res.sendFile(path.resolve(filePath));
+    const { plate, filePath } = await readablePlate(req);
+    const adapt = req.query.normalize === "1" ? await adaptPlanFor(plate, filePath, NORMALIZED_FOR) : null;
+    const adapted = adapt ? await adapted3mfFor(plate.id, filePath, adapt.plan) : null;
+    sendPlateFile(res, plate, adapted ?? filePath);
   }),
 );
 
-// Polled by "Open normalized in <slicer>" until the copy is ready, so no request outlasts a proxy timeout.
+async function sendAdapted(req: Request, res: Response, printer: PrinterAsked) {
+  const { plate, filePath } = await readablePlate(req);
+  const adapt = await adaptPlanFor(plate, filePath, req.params.slicer, printer);
+  const adapted = adapt ? await adapted3mfFor(plate.id, filePath, adapt.plan, adapt.printer) : null;
+  sendPlateFile(res, plate, adapted ?? filePath);
+}
+
+// The plate as `slicer` opens it best: the adapted copy, waited for if needed, or the plate itself when it needs none
+// or one can't be made. The path, not a query, names the slicer: OrcaSlicer names the file after the URL's end.
+router.get(
+  "/print/:id/plate/:plateId/adapted/:slicer/:filename",
+  asyncHandler((req, res) => sendAdapted(req, res, null)),
+);
+
+// The same, made for a printer from the printer catalogue with the given nozzle ("0.4"), where the slicer has a
+// preset for it.
+router.get(
+  "/print/:id/plate/:plateId/adapted/:slicer/:printer/:nozzle/:filename",
+  asyncHandler(async (req, res) => {
+    const printer = printerAskedSchema.safeParse({ id: req.params.printer, nozzle: req.params.nozzle });
+    if (!printer.success) throw new HttpError(404, "Not found");
+    await sendAdapted(req, res, printer.data);
+  }),
+);
+
+// Polled by "Open adapted in <slicer>" until the copy is ready, so no request outlasts a proxy timeout. "original"
+// when the slicer opens the plate itself as well as it can. `printer`, as in the adapted link, makes it for a printer.
+const adaptBodySchema = z.object({ slicer: z.unknown(), printer: printerAskedSchema.nullable().optional() });
+router.post(
+  "/print/:id/plate/:plateId/adapt",
+  asyncHandler(async (req, res) => {
+    const { plate, filePath } = await readablePlate(req);
+    const body = parseBody(adaptBodySchema, req.body ?? {});
+    const adapt = await adaptPlanFor(plate, filePath, body.slicer, body.printer ?? null);
+    res.json({ status: adapt ? await adapt3mfStatus(plate.id, filePath, adapt.plan, adapt.printer) : "original" });
+  }),
+);
+
+// The "Open normalized" status, for pages loaded before an upgrade.
 router.post(
   "/print/:id/plate/:plateId/normalize",
   asyncHandler(async (req, res) => {
-    const plate = await prisma.plate.findFirst({
-      where: { id: req.params.plateId, printId: req.params.id, print: await readablePrintWhere(req.userId!) },
-      include: { print: { select: { preparedMetadata: true } } },
-    });
-    if (!plate) throw new HttpError(404, "Not found");
-    if (plate.print.preparedMetadata !== null || !isNormalizable3mf(plate.filename)) {
-      throw new HttpError(400, "Only a plain 3MF project can be normalized.");
-    }
-    const filePath = resolvePlateFilePath(plate);
-    if (!filePath) throw new HttpError(404, "Not found");
-    res.json({ status: await normalize3mfStatus(plate.id, filePath) });
+    const { plate, filePath } = await readablePlate(req);
+    if (!adaptable(plate)) throw new HttpError(400, "Only a plain 3MF project can be normalized.");
+    const adapt = await adaptPlanFor(plate, filePath, NORMALIZED_FOR);
+    // Ready to open: the file itself, when it isn't a project a copy is made of.
+    res.json({ status: adapt ? await adapt3mfStatus(plate.id, filePath, adapt.plan) : "ready" });
   }),
 );
 
@@ -446,6 +651,8 @@ const metaSchema = z.object({
   title: z.string().optional(),
   notes: z.string().optional(),
   creator: z.string().optional(),
+  // A licence id (GET /licenses), "source" for what its source lists, or null for none on a model with no source.
+  license: z.string().max(100).nullable().optional(),
 });
 router.post(
   "/print/:id/meta",
@@ -455,6 +662,7 @@ router.post(
       name: body.name !== undefined ? body.name : body.title,
       notes: body.notes,
       creator: body.creator,
+      license: body.license,
     });
     res.json({ print: await printOutById(req.userId!, print.id) });
   }),
@@ -498,6 +706,8 @@ router.post(
     });
     if (print.authorId) await deleteAuthorIfOrphaned(print.authorId);
     await relocatePrintsForToken("creator", [print.id]);
+    // LICENSE.txt names who made it and where it's from, whatever the storage structure uses.
+    await afterLicenseChange(print.id);
     res.json({ print: await printOutById(req.userId!, print.id) });
     void createLog({
       userId: req.userId!,

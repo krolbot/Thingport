@@ -21,7 +21,9 @@ up, see the [connected instances guide](../guides/connected-instances.md).
   single partner narrows it down.
 - **Their models, as if they were here.** A partner's model opens with its pictures, description, files and the
   collections it's in. Download it file by file or as a ZIP, open it straight in your slicer, or **Copy to my library**
-  to keep your own copy, which stays even if they change or delete theirs.
+  to keep your own copy, which stays even if they change or delete theirs. The copy is the same model as theirs, with
+  its tags, print profiles and the site it came from, in your own category of the same name when you have one. If you
+  already have the model from that site, it opens yours instead.
 - **Their profiles.** A partner's person has a profile page like anyone here, with their cover, bio, links, shared
   models and public collections.
 - **Chats across instances.** Write to a partner's person directly, or add them to a private room. Messages arrive on
@@ -52,12 +54,12 @@ Your router sees only an answer to something your instance asked for, so it lets
   <img src="../assets/connected-instances-link-light.svg" alt="A home instance behind its router keeps a link open to an instance on the internet. The instance on the internet can't reach the home one directly, so its requests travel down the link, and the answers come back up it." width="100%">
 </picture>
 
-- **No port forwarding, domain or certificate.** A Thingport on a Raspberry Pi, a NAS or an old laptop at home is
-  enough. Only the instance on the internet needs an address others can reach.
+- **No port forwarding, domain or certificate.** A Thingport instance on a Raspberry Pi, a NAS or an old laptop at home
+  is enough. Only the instance on the internet needs an address others can reach.
 - **The same as two instances that reach each other.** Explore, pictures, downloads, copies and chats work both ways:
   the partner's people browse your shared models, download their files and write to your people, all through the link.
-- **One switch.** When you connect to an instance on the internet from one that's on your network only, Thingport turns
-  on **Keep a link open** by itself, and says why.
+- **One switch.** When you connect to an instance on the internet from one that's on your network only, or from one
+  nothing can reach at all, Thingport turns on **Keep a link open** by itself, and says why.
 - **Off at night, back in the morning.** While your instance is off, what's said to your people waits on the partner's
   side, for up to about three days, and your shared models stay on its Explore as you last shared them. Once your
   instance is back and its link opens again, everything that waited arrives.
@@ -114,6 +116,7 @@ Partners see exactly what anyone signed in on your instance could see of someone
 | Public collections, and the models in them                                   | Private collections, and the rest of everyone's library |
 | Models made public under **My models**                                       | Settings, API tokens, provider sign-ins                 |
 | Messages in chats with partners' people                                      | Chats with nobody from that partner in them             |
+| Collections shared with partners' people, to their instance only             | Who else a collection is shared with, elsewhere         |
 | Handles, `name@this-instance`                                                | Your instance's users list, logs and stats              |
 
 ### Each instance keeps a copy

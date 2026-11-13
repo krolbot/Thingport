@@ -1,4 +1,5 @@
 import { prisma } from "../db";
+import { kickSharing, queueCollectionsGone } from "../federation/sharedCollections";
 import { HttpError } from "../utils/fileUtils";
 import { printOutsByIds } from "./printLoader";
 import { relocatePrintsForToken } from "./printService";
@@ -6,7 +7,7 @@ import { moveCollectionBookmark } from "./bookmarkService";
 import { toSystemCollectionOut, type CollectionOut, type SystemCollectionKey } from "../dto";
 import { normalizeTags } from "../utils/tagNormalization";
 import { createLog } from "./auditLog";
-import type { Collection, Prisma } from "@prisma/client";
+import type { Collection, CollectionVisibility, Prisma } from "@prisma/client";
 
 export function normalizeCollectionName(name: string): string {
   return name.trim().toLowerCase();
@@ -67,7 +68,7 @@ export async function addPrintsToCollection(collectionId: string, printIds: stri
 /** A new, empty collection. Shared by POST /collections and the MCP create_collection tool. */
 export async function createCollection(
   userId: string,
-  input: { name: string; description?: string | null; tags?: string[]; isPublic?: boolean },
+  input: { name: string; description?: string | null; tags?: string[]; visibility?: CollectionVisibility },
 ): Promise<Collection> {
   await assertCollectionNameAvailable(userId, input.name);
   const collection = await prisma.collection.create({
@@ -77,7 +78,7 @@ export async function createCollection(
       nameNormalized: normalizeCollectionName(input.name),
       description: input.description?.trim() || null,
       tags: normalizeTags(input.tags ?? []),
-      isPublic: input.isPublic ?? false,
+      visibility: input.visibility ?? "PRIVATE",
     },
   });
   void createLog({ userId, action: "collection_created", targetId: collection.id, details: { name: collection.name } });
@@ -242,8 +243,9 @@ export async function previewCollectionMerge(userId: string, ids: string[]): Pro
   return { models: rows.length };
 }
 
-/** Moves the others' models into `primaryId` after its own, in the others' order, then deletes the others with their
- *  syncs. The kept one keeps its name, description, tags and sync, and takes over a bookmark if it had none. */
+/** Moves the others' models into `primaryId` after its own, in the others' order, then deletes the others. The kept one
+ *  keeps its name, description, tags and syncs, takes over the others' syncs, with the imports they've queued, and
+ *  takes over a bookmark if it had none. */
 export async function mergeCollections(
   userId: string,
   primaryId: string,
@@ -273,9 +275,21 @@ export async function mergeCollections(
       skipDuplicates: true,
     });
     await moveCollectionBookmark(userId, mergedIds, primary.id, tx);
+    // A collection follows any number of sources, so theirs carry on into the kept one, and what they've queued lands
+    // there too rather than in a collection that's gone: a failed link too, which a retry runs again.
+    await tx.collectionSync.updateMany({
+      where: { collectionId: { in: mergedIds } },
+      data: { collectionId: primary.id },
+    });
+    await tx.$executeRaw`
+      UPDATE "ImportJobItem" SET payload = jsonb_set(payload::jsonb, '{collection_id}', to_jsonb(${primary.id}::text))
+      WHERE status IN ('PENDING', 'FAILED') AND payload->>'collection_id' = ANY(${mergedIds})`;
+    await tx.grabImport.updateMany({ where: { collectionId: { in: mergedIds } }, data: { collectionId: primary.id } });
+    await queueCollectionsGone(tx, mergedIds);
     await tx.collection.deleteMany({ where: { id: { in: mergedIds } } });
     return count;
   });
+  kickSharing();
   await relocatePrintsForToken("collection", printIds);
   return { primary, merged, added };
 }
@@ -289,7 +303,11 @@ export async function deleteCollections(userId: string, ids: string[]): Promise<
     distinct: ["printId"],
     select: { printId: true },
   });
-  await prisma.collection.deleteMany({ where: { id: { in: collectionIds } } });
+  await prisma.$transaction(async (tx) => {
+    await queueCollectionsGone(tx, collectionIds);
+    await tx.collection.deleteMany({ where: { id: { in: collectionIds } } });
+  });
+  kickSharing();
   await relocatePrintsForToken(
     "collection",
     items.map((item) => item.printId),

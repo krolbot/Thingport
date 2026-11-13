@@ -7,12 +7,23 @@
 import { BOARD_DESIGN, MOUNT_DESIGNS, boardKey, boardSource, keyForItem, needsMirror } from "./catalogue.js";
 import { hardwareFor } from "./mounting.js";
 
-/** East Slavic counts need a separate form for 2–4 and the right form for 21, 22 and so on. */
-export const plural = (t, count, one, many, language = "en") => {
-  const category = ["ru", "uk", "be"].includes(language) ? new Intl.PluralRules(language).select(count) : null;
-  const key = category === "few" ? one.replace(/\.one$/, ".few") : (category ? category === "one" : count === 1) ? one : many;
-  return `${count} ${t(key)}`;
+/** A count's word in the user's language: `t()` picks the plural form, and on an older Thingport, whose `t()` has none,
+ *  the form is picked here instead, as `Intl.PluralRules` names it, then `.other`. */
+export const countWord = (t, key, count, language = "en") => {
+  const word = t(key, { count });
+  if (word !== key) return word;
+  let form;
+  try {
+    form = new Intl.PluralRules(language).select(count);
+  } catch {
+    // A code Intl doesn't know counts as English does.
+    form = new Intl.PluralRules("en").select(count);
+  }
+  const chosen = t(`${key}.${form}`);
+  return chosen === `${key}.${form}` ? t(`${key}.other`) : chosen;
 };
+/** "1 board" / "4 boards", in the language's own plural forms. */
+export const plural = (t, count, key, language) => `${count} ${countWord(t, key, count, language)}`;
 const mm = (value) => `${Math.round(value)} mm`;
 /** "820 × 860 mm": the unit once, at the end, as a size is written. */
 const size = (a, b) => `${Math.round(a)} × ${Math.round(b)} mm`;
@@ -110,7 +121,7 @@ export function partListText(plan, context) {
   );
   field(
     "list.boards",
-    `${plural(t, plan.boards.length, "list.board.one", "list.board.many", language)}, ` +
+    `${plural(t, plan.boards.length, "list.boardWord", language)}, ` +
       t("list.acrossDown", { across: plan.columns.length, down: plan.rows.length }),
   );
   field("list.printer", t("list.printerValue", { printer: t(printer.name), x: printer.x, y: printer.y }));
@@ -134,8 +145,7 @@ export function partListText(plan, context) {
       parts: plural(
         t,
         steps.reduce((total, step) => total + step.count, 0),
-        "list.part.one",
-        "list.part.many",
+        "list.partWord",
         language,
       ),
     })}`,
@@ -173,7 +183,7 @@ export function describePlan(plan, context) {
   const out = [];
   out.push(
     t("describe.summary", {
-      boards: plural(t, plan.boards.length, "list.board.one", "list.board.many", language),
+      boards: plural(t, plan.boards.length, "list.boardWord", language),
       size: size(plan.widthMm, plan.heightMm),
       across: plan.columns.length,
       down: plan.rows.length,

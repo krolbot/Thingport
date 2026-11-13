@@ -90,7 +90,7 @@ export const DOCS = [
     group: "Companion apps",
     title: "Thingport Grab browser extension",
     nav: "Thingport Grab",
-    description: `Import models straight from their own pages on all ${PROVIDER_NAMES.length} sites. Pair it with your Thingport, and no password is saved.`,
+    description: `Import models straight from their own pages on all ${PROVIDER_NAMES.length} sites. Pair it with your Thingport instance, and no password is saved.`,
   },
   {
     slug: "grab/privacy",
@@ -213,7 +213,8 @@ export const DOCS = [
     group: "Features",
     title: "Profile and activity",
     nav: "Profile and activity",
-    description: "A year-long activity heatmap and timeline of everything you've done with your library.",
+    description:
+      "A profile with your cover, avatar, bio and links, and a year-long activity heatmap and timeline of everything you've done with your library.",
   },
   {
     slug: "features/authors",
@@ -232,13 +233,13 @@ export const DOCS = [
     description: "Open files straight in Bambu Studio, OrcaSlicer, PrusaSlicer, Cura and other slicers.",
   },
   {
-    slug: "features/normalized-3mf",
-    source: "docs/features/normalized-3mf.md",
+    slug: "features/adapted-3mf",
+    source: "docs/features/adapted-3mf.md",
     group: "Features",
-    title: "Normalized MakerWorld 3MFs",
-    nav: "Normalized 3MFs",
+    title: "Adapted 3MFs",
+    nav: "Adapted 3MFs",
     description:
-      "Open MakerWorld's Bambu Studio projects in other slicers with their colours, plates and print settings.",
+      "Open a 3MF from any site in your slicer as if it had been made there: colours, parts, plates and print settings.",
   },
   {
     slug: "features/supporting-files",
@@ -248,6 +249,15 @@ export const DOCS = [
     nav: "Supporting files",
     description:
       "Keep instructions, notes and a ready-to-print sliced file next to each model, and customize one that came with its OpenSCAD script right in your browser.",
+  },
+  {
+    slug: "features/licenses",
+    source: "docs/features/licenses.md",
+    group: "Features",
+    title: "Licences",
+    nav: "Licences",
+    description:
+      "The licence each model was published under, shown on its page with a credit line, filtered by what it allows, and written beside its files as LICENSE.txt unless an admin turns that off.",
   },
   {
     slug: "features/downloads",
@@ -282,7 +292,7 @@ export const DOCS = [
     title: "Social features",
     nav: "Social features",
     description:
-      "Public collections and models, found by everyone on Explore, profiles to show them on, and chats with models in them, across connected instances too.",
+      "Collections that are private, shared with the people you pick or public, found on Explore and under Shared with you, profiles to show them on, and chats with models in them, across connected instances too.",
   },
   {
     slug: "features/connected-instances",
@@ -309,7 +319,7 @@ export const DOCS = [
     title: "Themes, colours and languages",
     nav: "Themes and languages",
     description:
-      "Light, dark or system theme, an accent colour of your own, 3D renders on model cards, in English, Spanish, French or Lithuanian.",
+      "Light, dark or system theme, an accent colour of your own, 3D renders on model cards, in English, Spanish, French, Lithuanian, Russian, Ukrainian or Belarusian.",
   },
   {
     slug: "guides/system-health",
@@ -443,7 +453,7 @@ export const DOCS = [
     title: "Build with an AI assistant",
     nav: "With an AI assistant",
     description:
-      "Describe a widget or a tool to Claude or another assistant over MCP, which writes it and saves it to your Thingport.",
+      "Describe a widget or a tool to Claude or another assistant over MCP, which writes it and saves it to your Thingport instance.",
   },
   {
     slug: "developers/publishing",
@@ -451,7 +461,7 @@ export const DOCS = [
     group: "Build for Thingport",
     title: "Publishing widgets and tools",
     nav: "Publishing",
-    description: "Share a widget or a tool with every Thingport through a pull request to the repository.",
+    description: "Share a widget or a tool with every Thingport instance through a pull request to the repository.",
   },
   {
     slug: "contributing",

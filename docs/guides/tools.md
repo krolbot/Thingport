@@ -92,10 +92,10 @@ Favourite one and it shows in Favourites, as anything you favourite does.
 
 An admin may install a tool without them -- they can run to gigabytes -- by switching off **Import its models** as
 they install it, and import them later with **Import its models** in its details. An update, from its chip or its
-details, brings them only where this Thingport already has them, so a tool installed without them stays that way.
-Meanwhile a tool can fetch just the few that a piece of work needs, through `fetchToolModels`: one from a model page is
-imported then through this Thingport's first admin account, with its connection to that site, while the tool's own
-files come only with **Import its models**.
+details, brings them only where this Thingport instance already has them, so a tool installed without them stays that
+way. Meanwhile a tool can fetch just the few that a piece of work needs, through `fetchToolModels`: one from a model
+page is imported then through this Thingport instance's first admin account, with its connection to that site, while the
+tool's own files come only with **Import its models**.
 
 The files behind them are the tool's, and are kept once for the instance however many people use the tool -- parts
 that take a gigabyte take a gigabyte, not a gigabyte per person. Each user still has their own model, in their own
@@ -168,8 +168,12 @@ export default async function mount(thingport) {
   root.querySelector("#save").addEventListener("click", async () => {
     const collection = await ui.pickCollection({ title: "Save the bin to" });
     if (!collection) return;
-    await models.create({ name: "Bin 2×3", collectionId: collection.id, files: [{ name: "bin.stl", data: stl }] });
-    ui.toast("Saved", "success");
+    const model = await models.create({
+      name: "Bin 2×3",
+      collectionId: collection.id,
+      files: [{ name: "bin.stl", data: stl }],
+    });
+    ui.toast("Saved", "success", { openModel: model.id }); // with an Open button for the model
   });
   return () => {}; // stop timers and remove window listeners here
 }

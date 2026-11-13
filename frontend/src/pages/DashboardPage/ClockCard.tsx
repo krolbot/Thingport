@@ -14,15 +14,19 @@ function greetingKey(hour: number): string {
   return "evening";
 }
 
+// As browsers with Belarusian data write them: months in the genitive, "8 мая".
 const BE_SHORT_DATE = {
-  weekdays: ["нд", "пн", "аўт", "ср", "чц", "пт", "сб"],
-  months: ["студз.", "лют.", "сак.", "крас.", "май", "чэрв.", "ліп.", "жн.", "вер.", "кастр.", "ліст.", "снеж."],
+  weekdays: ["нд", "пн", "аў", "ср", "чц", "пт", "сб"],
+  months: ["сту", "лют", "сак", "кра", "мая", "чэр", "ліп", "жні", "вер", "кас", "ліс", "сне"],
 };
 
 export function shortDate(language: string, now: Date) {
   // Chromium's ICU omits Belarusian, so its Intl formatter silently falls back to English.
   if (language === "be" && !Intl.DateTimeFormat.supportedLocalesOf([language]).length) {
-    return { weekday: BE_SHORT_DATE.weekdays[now.getDay()], day: `${now.getDate()} ${BE_SHORT_DATE.months[now.getMonth()]}` };
+    return {
+      weekday: BE_SHORT_DATE.weekdays[now.getDay()],
+      day: `${now.getDate()} ${BE_SHORT_DATE.months[now.getMonth()]}`,
+    };
   }
   return {
     weekday: new Intl.DateTimeFormat(language, { weekday: "short" }).format(now),

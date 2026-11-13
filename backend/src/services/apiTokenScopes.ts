@@ -28,7 +28,16 @@ export const API_TOKEN_SCOPES: readonly ApiTokenScope[] = [
     id: "models",
     title: "Models",
     description: "List models and read their details.",
-    paths: ["/prints", "/prints/sources", "/prints/missing-files", "/print/:id", "/print/:id/quality"],
+    paths: [
+      "/prints",
+      "/prints/sources",
+      "/prints/missing-files",
+      "/print/:id",
+      "/print/:id/quality",
+      "/print/:id/profiles",
+      "/print/:id/license",
+      "/licenses",
+    ],
   },
   {
     id: "dashboard",
@@ -63,6 +72,7 @@ export const API_TOKEN_SCOPES: readonly ApiTokenScope[] = [
     paths: [
       "/collections",
       "/collection/:id",
+      "/collection/:id/sharing",
       "/print/:id/collections",
       "/bookmarks",
       "/social",
@@ -70,6 +80,8 @@ export const API_TOKEN_SCOPES: readonly ApiTokenScope[] = [
       "/explore/user/:id",
       "/explore/user/:id/collections",
       "/explore/user/:id/models",
+      "/explore/shared",
+      "/explore/elsewhere/shared",
       "/explore/elsewhere/person/:id",
       "/explore/elsewhere/person/:id/collections",
       "/explore/elsewhere/person/:id/models",
@@ -112,6 +124,7 @@ export const API_TOKEN_SCOPES: readonly ApiTokenScope[] = [
     paths: [
       "/plate/:id/thumb.jpg",
       "/plate/:id/render.png",
+      "/plate/:id/profile-plate/:index.png",
       "/print/:id/thumb.jpg",
       "/preview-image/:id/file.jpg",
       "/description-image/:id",
@@ -125,6 +138,8 @@ export const API_TOKEN_SCOPES: readonly ApiTokenScope[] = [
     description: "Download model files and 3D previews.",
     paths: [
       "/print/:id/plate/:plateId/file/:filename",
+      "/print/:id/plate/:plateId/adapted/:slicer/:filename",
+      "/print/:id/plate/:plateId/adapted/:slicer/:printer/:nozzle/:filename",
       "/plate/:id/preview.glb",
       "/print/:id/files",
       "/print/:id/files/:fileId",

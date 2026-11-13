@@ -1,3 +1,4 @@
+import type { ThreeMfFormat } from "../adapter/format.generated";
 import { appendTokenToUrl, authHeaders, readToken } from "../utils/auth";
 import { apiBase, assertOk, readErrorMessage, LastPlateError, UnauthorizedError } from "./client";
 import type { RemoteOrigin, UserCard } from "./social";
@@ -12,11 +13,17 @@ export type PreparedPrint = {
   removable: boolean;
 };
 
+/** Where an adapted copy is: being made, made, failed (open the plate itself), or not needed for that slicer. */
+export type AdaptStatus = "ready" | "preparing" | "failed" | "original";
+
 export type Plate = {
   id: string;
   print_id: string;
   position: number; // dense, 0-based, ordered
-  filename: string;
+  filename: string; // unique within its folder, not the whole model
+  /** The folder its source kept it in, levels joined by "/" ("USB C version/Handles"); null or absent (from an older
+   *  backend) for none. */
+  folder?: string | null;
   mime: string;
   size: number;
   url: string; // /print/{printId}/plate/{plateId}/file/{filename}
@@ -25,11 +32,63 @@ export type Plate = {
   preview_glb_url?: string | null; // /plate/{plateId}/preview.glb?v=... once background pre-render finishes
   render_url?: string | null; // /plate/{plateId}/render.png[?v=...]: grey shading for cards to tint; null if undrawable
   own_colors?: boolean; // the file carries colours of its own, so our picture of it is a colour render
+  /** The provider's id of the print profile this file is; null or absent for any other file (and from an older
+   *  backend). */
+  profile_id?: string | null;
+  /** That profile as the model page shows it, from the detail fetch only. */
+  profile?: PrintProfile | null;
+  /** What kind of 3MF it is, from which the page tells which slicers get an adapted copy; null for other files, and
+   *  absent from an older backend. */
+  format?: ThreeMfFormat | null;
+};
+
+export type ProfileFilament = { type: string | null; color: string | null; grams: number | null };
+
+export type ProfilePlate = {
+  /** Numbered from 1, as slicers number build plates. */
+  index: number;
+  name: string | null;
+  seconds: number | null;
+  grams: number | null;
+  filaments: ProfileFilament[];
+  objects: number | null;
+  /** /plate/{plateId}/profile-plate/{index}.png?v=...: the plate's picture from the 3MF. */
+  thumb_url: string | null;
+};
+
+/** A print profile a model was imported with, as its provider and its 3MF describe it. Unknown facts are null or
+ *  empty; without a title, the file's name stands in. */
+export type PrintProfile = {
+  title: string | null;
+  description: string | null;
+  origin: "designer" | "community" | null;
+  creator: string | null;
+  seconds: number | null;
+  grams: number | null;
+  filaments: ProfileFilament[];
+  plates: ProfilePlate[];
+  printer: string | null;
+  nozzle_mm: number | null;
+  layer_mm: number | null;
+  infill: string | null;
+  walls: number | null;
+  supports: boolean | null;
+};
+
+export type PrintProfiles = {
+  /** Reading them now would find something new: the owner's page starts it. */
+  pending: boolean;
+  /** A read is waiting or running. */
+  filling: boolean;
+  /** By plate id. */
+  profiles: Record<string, PrintProfile>;
 };
 
 export type PrintFile = {
   id: string;
   filename: string;
+  /** As Plate.folder. */
+  folder?: string | null;
   mime: string;
   size: number;
   url: string; // /print/{printId}/files/{fileId}
@@ -99,7 +158,7 @@ export type Print = {
   own_colors?: boolean; // any plate carries colours of its own
   supporting_file_count: number;
   /** The scripts it can be generated again from, out of the files kept beside it; empty for an ordinary model. */
-  generator_scripts?: { id: string; filename: string }[];
+  generator_scripts?: { id: string; filename: string; folder?: string | null }[];
   /** The source had a script for it but its creator chose not to share it: there is none to open, and that is
    *  why, which a model that simply never had one wouldn't explain. */
   generator_script_withheld?: boolean;
@@ -122,7 +181,50 @@ export type Print = {
   library_copy_id?: string | null;
   /** On a copy of a partner instance's model, from the detail fetch: where it came from. */
   copied_from_remote?: RemoteOrigin | null;
+  /** From the detail fetch of a model with print profiles: reading them now would find something new, and one is
+   *  already waiting or running. */
+  profiles_pending?: boolean;
+  profiles_filling?: boolean;
+  /** Its licence: what its source lists, or what its owner picked. Null when nothing says; absent from an older
+   *  backend. */
+  license?: License | null;
+  /** From the detail fetch: its source hasn't been read for its licence yet, and one is already waiting or running. */
+  license_pending?: boolean;
+  license_filling?: boolean;
+  /** The last read of its source failed: its owner can retry. */
+  license_failed?: boolean;
 };
+
+/** What a licence may allow: pass the files on unchanged, change them, use them commercially. */
+export type LicenseAction = "share" | "remix" | "commercial";
+export const LICENSE_ACTIONS: readonly LicenseAction[] = ["share", "remix", "commercial"];
+export type LicenseMark = "cc" | "by" | "nc" | "sa" | "nd" | "zero" | "pd";
+export type LicenseFamily = "cc" | "open" | "site" | "reserved";
+
+/** One a model can have, as GET /licenses lists them. */
+export type LicenseOption = {
+  id: string;
+  short: string;
+  name: string;
+  url: string | null;
+  family: LicenseFamily;
+  marks: LicenseMark[];
+  allows: LicenseAction[];
+  requires: { credit: boolean; same_license: boolean };
+};
+
+export type License = Omit<LicenseOption, "id" | "family"> & {
+  id: string | null;
+  /** Null for one Thingport doesn't know: its terms are all there is to go by. */
+  family: LicenseFamily | null;
+  /** The site's or creator's own words. */
+  terms: string | null;
+  /** "user": its owner picked it; "provider": its source lists it. */
+  source: "provider" | "user";
+  provider: string | null;
+};
+
+export type PrintLicense = { license: License | null; pending: boolean; filling: boolean; failed: boolean };
 
 export type ListPrintsResult = {
   items: Print[];
@@ -222,6 +324,15 @@ export const printsApi = {
     return appendTokenToUrl(`${apiBase()}${rel}`);
   },
 
+  /** A plate's link as `slicer` opens it best (its adapted copy, or the plate itself), relative like `plate.url`, made
+   *  for `printer` when given. They're in the path, not a query: OrcaSlicer names the file after everything past the
+   *  URL's last slash. */
+  adaptedPlateUrl: (plate: Pick<Plate, "url">, slicer: string, printer?: { id: string; nozzle: string } | null) =>
+    plate.url.replace(/\/file\/([^/]+)$/, (_all, name: string) => {
+      const forPrinter = printer ? `/${encodeURIComponent(printer.id)}/${encodeURIComponent(printer.nozzle)}` : "";
+      return `/adapted/${encodeURIComponent(slicer)}${forPrinter}/${name}`;
+    }),
+
   /** An absolute file URL for a slicer to download, with the session in the path rather than `?token=`: OrcaSlicer
    *  and its forks name the file after everything past the last slash, query string included. */
   slicerFileUrl: (rel: string) => {
@@ -242,6 +353,10 @@ export const printsApi = {
       /** Sites to leave out, by provider id ("thingport" for the ones uploaded here). Named as what to hide, so a
        *  site the library gains later is listed from the start. */
       hide_providers?: string[];
+      /** Only models whose licence allows every one of these. */
+      license_allows?: LicenseAction[];
+      /** Only models with a licence. */
+      licensed?: boolean;
       order_by?: PrintSortMode;
       limit?: number;
       offset?: number;
@@ -252,6 +367,8 @@ export const printsApi = {
     if (params.tags && params.tags.length) qs.set("tags", params.tags.join(","));
     if (params.generative) qs.set("generative", "1");
     if (params.hide_providers?.length) qs.set("hide_providers", params.hide_providers.join(","));
+    if (params.license_allows?.length) qs.set("license_allows", params.license_allows.join(","));
+    if (params.licensed) qs.set("licensed", "1");
     if (params.category_id && params.category_id.length) {
       qs.set("category_id", Array.isArray(params.category_id) ? params.category_id.join(",") : params.category_id);
     }
@@ -299,6 +416,49 @@ export const printsApi = {
     const res = await fetch(`${apiBase()}/print/${id}/quality`, { method: "POST", headers: authHeaders() });
     if (res.status === 401) throw new UnauthorizedError();
     assertOk(res, "Failed to start the quality check");
+    return res.json();
+  },
+
+  getLicense: async (id: string): Promise<PrintLicense> => {
+    const res = await fetch(`${apiBase()}/print/${id}/license`, { headers: authHeaders() });
+    if (res.status === 401) throw new UnauthorizedError();
+    assertOk(res, "Failed to load the licence");
+    return res.json();
+  },
+
+  /** Starts reading the model's licence from its source; returns at once, `filling` while it runs. */
+  /** `retry` reads it now even when a read failed a moment ago. */
+  fillLicense: async (id: string, opts: { retry?: boolean } = {}): Promise<PrintLicense> => {
+    const res = await fetch(`${apiBase()}/print/${id}/license/fill`, {
+      method: "POST",
+      headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify(opts.retry ? { retry: true } : {}),
+    });
+    if (res.status === 401) throw new UnauthorizedError();
+    assertOk(res, "Failed to read the licence");
+    return res.json();
+  },
+
+  /** The licences an owner can pick for a model. */
+  listLicenses: async (): Promise<LicenseOption[]> => {
+    const res = await fetch(`${apiBase()}/licenses`, { headers: authHeaders() });
+    if (res.status === 401) throw new UnauthorizedError();
+    assertOk(res, "Failed to load the licences");
+    return res.json();
+  },
+
+  getProfiles: async (id: string): Promise<PrintProfiles> => {
+    const res = await fetch(`${apiBase()}/print/${id}/profiles`, { headers: authHeaders() });
+    if (res.status === 401) throw new UnauthorizedError();
+    assertOk(res, "Failed to load the print profiles");
+    return res.json();
+  },
+
+  /** Starts reading what's missing of the model's print profiles; returns at once, `filling` while it runs. */
+  fillProfiles: async (id: string): Promise<PrintProfiles> => {
+    const res = await fetch(`${apiBase()}/print/${id}/profiles/fill`, { method: "POST", headers: authHeaders() });
+    if (res.status === 401) throw new UnauthorizedError();
+    assertOk(res, "Failed to read the print profiles");
     return res.json();
   },
 
@@ -512,6 +672,8 @@ export const printsApi = {
       title?: string | null;
       notes?: string | null;
       creator?: string | null;
+      /** A licence id, "source" for what its source lists, or null for none (a model with no source). */
+      license?: string | null;
     },
   ) => {
     const res = await fetch(`${apiBase()}/print/${id}/meta`, {
@@ -736,7 +898,8 @@ export const printsApi = {
     return res.json();
   },
 
-  downloadZip: async (opts: DownloadZipFilter & { filename?: string }) => {
+  /** `folder`: only the files in that folder of the models (Plate.folder) and the folders in it. */
+  downloadZip: async (opts: DownloadZipFilter & { filename?: string; folder?: string }) => {
     const res = await fetch(`${apiBase()}/download/zip`, {
       method: "POST",
       headers: authHeaders({ "Content-Type": "application/json" }),
@@ -768,14 +931,22 @@ export const printsApi = {
     return res.json();
   },
 
-  /** Starts preparing a normalized copy for "Open normalized in <slicer>" if needed; poll until "ready". */
-  normalizePlate: async (printId: string, plateId: string): Promise<{ status: "ready" | "preparing" | "failed" }> => {
-    const res = await fetch(`${apiBase()}/print/${printId}/plate/${plateId}/normalize`, {
+  /** Starts preparing the copy of a plate `slicer` gets (the model page's "Open adapted in <slicer>") if needed; poll
+   *  until "ready". "original" when the slicer opens the plate itself as well as it can. */
+  /** `printer` makes the copy for one of the user's printers, as the adapted link with it does. */
+  adaptPlate: async (
+    printId: string,
+    plateId: string,
+    slicer: string,
+    printer?: { id: string; nozzle: string } | null,
+  ): Promise<{ status: AdaptStatus }> => {
+    const res = await fetch(`${apiBase()}/print/${printId}/plate/${plateId}/adapt`, {
       method: "POST",
-      headers: authHeaders(),
+      headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify(printer ? { slicer, printer: { id: printer.id, nozzle: printer.nozzle } } : { slicer }),
     });
     if (res.status === 401) throw new UnauthorizedError();
-    if (!res.ok) throw new Error(await readErrorMessage(res, "Failed to prepare normalized file"));
+    if (!res.ok) throw new Error(await readErrorMessage(res, "Failed to prepare the adapted file"));
     return res.json();
   },
 
