@@ -11,6 +11,8 @@ export const STORAGE_KEYS = {
   connectionToken: "connectionToken",
   // A connection by approval in progress: the secret it proves itself with, and the tab it opened.
   pendingPairing: "pendingPairing",
+  // The address saved before the browser's host-permission prompt dismisses the popup.
+  pairingIntent: "pairingIntent",
   disabled: "disabled",
   // The popup's Offline features (see OFFLINE_FEATURE_DEFAULTS); unset means the default.
   normalizeMakerworld: "normalizeMakerworld",
@@ -19,6 +21,8 @@ export const STORAGE_KEYS = {
   // The popup's Bubble tab (see shared/bubble.ts); unset means today's white bubble, bottom right.
   bubbleStyle: "bubbleStyle",
   bubblePlace: "bubblePlace",
+  // The explicit UI language. When absent, runtime catalogs follow the browser language.
+  locale: "locale",
   // From the last login: admins get "Add to the queue" in the import panel.
   isAdmin: "isAdmin",
   // Whether the instance gives everyone an import queue of their own, as its health check said at the last sign-in:
@@ -51,12 +55,14 @@ export type StoredConfig = {
   password?: string;
   connectionToken?: string;
   pendingPairing?: PendingPairing;
+  pairingIntent?: PairingIntent;
   disabled?: boolean;
   normalizeMakerworld?: boolean;
   thingiverseDark?: boolean;
   thingiverseHideAds?: boolean;
   bubbleStyle?: string;
   bubblePlace?: string;
+  locale?: string;
   isAdmin?: boolean;
   importQueue?: boolean;
   token?: string;
@@ -93,6 +99,7 @@ export function offlineFeatureOn(config: StoredConfig, feature: OfflineFeature):
 }
 
 export type PendingPairing = { instanceUrl: string; verifier: string; tabId: number; startedAt: number };
+export type PairingIntent = { instanceUrl: string; startedAt: number };
 
 /** Where each sign-in sent was remembered before lastSyncedSessions; dropped on update, so each is sent once more. */
 export const LEGACY_SESSION_KEYS = [
@@ -114,6 +121,7 @@ export const CONFIG_CHANGE_KEYS: readonly string[] = [
   STORAGE_KEYS.normalizeMakerworld,
   STORAGE_KEYS.isAdmin,
   STORAGE_KEYS.importQueue,
+  STORAGE_KEYS.locale,
 ];
 
 export function normalizeInstanceUrl(raw: string | undefined | null): string {

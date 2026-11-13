@@ -4,15 +4,17 @@
 import type { MakerworldJob } from "../shared/messages";
 import { send } from "../shared/messages";
 import { fillIcons } from "../shared/icon";
+import { t } from "../shared/i18n";
+import { escapeHtml } from "./runtime";
 
 // Long enough never to show during a normal step, short enough for a stuck one.
 const JOB_STUCK_REVEAL_MS = 20000;
 
 function overlayHtml(title: string, countHtml: string, extra = ""): string {
   return `
-    <div class="tg-overlay__card">
+    <div class="tg-overlay__card" tabindex="-1">
       <span class="tg-overlay__icon" data-icon></span>
-      <div class="tg-overlay__title">${title}</div>
+      <div class="tg-overlay__title" id="tg-overlay-title">${escapeHtml(title)}</div>
       ${countHtml}
       ${extra}
     </div>
@@ -27,9 +29,9 @@ function formatWait(ms: number): string {
 function progressHtml(job: MakerworldJob): string {
   const percent = job.total ? Math.round((job.imported / job.total) * 100) : 0;
   const profiles = job.profiles?.total
-    ? `<div class="tg-overlay__count">Print profile ${Math.min(job.profiles.done + 1, job.profiles.total)} of ${job.profiles.total}</div>`
+    ? `<div class="tg-overlay__count">${escapeHtml(t("overlayPrintProfileProgress", { current: Math.min(job.profiles.done + 1, job.profiles.total), total: job.profiles.total }))}</div>`
     : "";
-  return `<div class="tg-overlay__count">${job.imported} / ${job.total} models done (${percent}%)</div>
+  return `<div class="tg-overlay__count">${escapeHtml(t("overlayProgress", { imported: job.imported, total: job.total, percent }))}</div>
      <div class="tg-progress"><div class="tg-progress__bar" style="width:${percent}%"></div></div>${profiles}`;
 }
 
@@ -37,8 +39,36 @@ function wireAbort(overlay: HTMLElement): void {
   const abortBtn = overlay.querySelector<HTMLButtonElement>("[data-action=abort]")!;
   abortBtn.addEventListener("click", () => {
     abortBtn.disabled = true;
-    abortBtn.textContent = "Aborting…";
+    abortBtn.textContent = t("aborting");
     void send("ABORT_MAKERWORLD_COLLECTION_JOB");
+  });
+}
+
+/** Keeps keyboard focus on a full-page blocking overlay; the docked CAPTCHA card deliberately does not use this. */
+function focusBlockingOverlay(overlay: HTMLElement, preferred?: HTMLElement): void {
+  const card = overlay.querySelector<HTMLElement>(".tg-overlay__card")!;
+  (preferred ?? card).focus();
+  overlay.addEventListener("keydown", (event) => {
+    if (event.key !== "Tab") return;
+    const buttons = [...overlay.querySelectorAll<HTMLButtonElement>("button:not([disabled])")].filter(
+      (button) => !button.hidden,
+    );
+    if (!buttons.length) {
+      event.preventDefault();
+      card.focus();
+      return;
+    }
+    const first = buttons[0];
+    const last = buttons.at(-1)!;
+    const root = overlay.getRootNode();
+    const active = root instanceof ShadowRoot ? root.activeElement : null;
+    if (!(active instanceof HTMLButtonElement) || !buttons.includes(active)) {
+      event.preventDefault();
+      (event.shiftKey ? last : first).focus();
+    } else if ((event.shiftKey && active === first) || (!event.shiftKey && active === last)) {
+      event.preventDefault();
+      (event.shiftKey ? last : first).focus();
+    }
   });
 }
 
@@ -46,21 +76,25 @@ function wireAbort(overlay: HTMLElement): void {
 export function mountJobOverlay(root: ShadowRoot, job: MakerworldJob): void {
   const overlay = document.createElement("div");
   overlay.className = "tg-overlay";
+  overlay.setAttribute("role", "dialog");
+  overlay.setAttribute("aria-modal", "true");
+  overlay.setAttribute("aria-labelledby", "tg-overlay-title");
   overlay.innerHTML = overlayHtml(
-    "Importing from MakerWorld…",
+    t("importingFromMakerWorld"),
     progressHtml(job),
     `<div class="tg-overlay__count" data-role="wait" hidden></div>
-     <button class="tg-btn tg-btn--danger" type="button" data-action="abort">Abort</button>
-     <button class="tg-btn tg-btn--secondary" type="button" data-action="next" hidden>Import next</button>`,
+     <button class="tg-btn tg-btn--danger" type="button" data-action="abort">${escapeHtml(t("abort"))}</button>
+     <button class="tg-btn tg-btn--secondary" type="button" data-action="next" hidden>${escapeHtml(t("import"))}</button>`,
   );
   fillIcons(overlay);
   root.appendChild(overlay);
   wireAbort(overlay);
+  focusBlockingOverlay(overlay, overlay.querySelector<HTMLButtonElement>("[data-action=abort]")!);
 
   const nextBtn = overlay.querySelector<HTMLButtonElement>("[data-action=next]")!;
   nextBtn.addEventListener("click", () => {
     nextBtn.disabled = true;
-    nextBtn.textContent = "Checking…";
+    nextBtn.textContent = t("checking");
     void send("FORCE_ADVANCE_MAKERWORLD_JOB");
   });
   // Normally the page navigates on first, tearing this timer down.
@@ -79,7 +113,7 @@ export function mountJobOverlay(root: ShadowRoot, job: MakerworldJob): void {
   waitEl.hidden = false;
   const tick = () => {
     const remaining = job.startAt - Date.now();
-    waitEl.textContent = `${job.profiles?.ids.length ? "Next print profile" : "Next model"} in ${formatWait(remaining)}`;
+    waitEl.textContent = t("nextIn", { next: job.profiles?.ids.length ? t("nextPrintProfile") : t("nextModel"), time: formatWait(remaining) });
     if (remaining > 0) return;
     clearInterval(timer);
     waitEl.hidden = true;
@@ -93,14 +127,14 @@ export function mountJobOverlay(root: ShadowRoot, job: MakerworldJob): void {
 export function mountPausedJobOverlay(root: ShadowRoot, job: MakerworldJob): void {
   const overlay = document.createElement("div");
   overlay.className = "tg-overlay tg-overlay--docked";
+  overlay.setAttribute("role", "region");
+  overlay.setAttribute("aria-labelledby", "tg-overlay-title");
   overlay.innerHTML = overlayHtml(
-    "Paused: MakerWorld wants a CAPTCHA",
+    t("pausedCaptcha"),
     progressHtml(job),
-    `<div class="tg-overlay__text">Solve the puzzle on this page. If none is showing, click the arrow
-       next to "Open in Bambu Studio" and choose "Download 3MF" to bring it up. Then resume -- the
-       run continues from this model.</div>
-     <button class="tg-btn" type="button" data-action="resume">Resume</button>
-     <button class="tg-btn tg-btn--danger" type="button" data-action="abort">Abort</button>`,
+    `<div class="tg-overlay__text">${escapeHtml(t("captchaInstructions"))}</div>
+     <button class="tg-btn" type="button" data-action="resume">${escapeHtml(t("resume"))}</button>
+     <button class="tg-btn tg-btn--danger" type="button" data-action="abort">${escapeHtml(t("abort"))}</button>`,
   );
   fillIcons(overlay);
   root.appendChild(overlay);
@@ -108,7 +142,7 @@ export function mountPausedJobOverlay(root: ShadowRoot, job: MakerworldJob): voi
   const resumeBtn = overlay.querySelector<HTMLButtonElement>("[data-action=resume]")!;
   resumeBtn.addEventListener("click", () => {
     resumeBtn.disabled = true;
-    resumeBtn.textContent = "Resuming…";
+    resumeBtn.textContent = t("resuming");
     void send("RESUME_MAKERWORLD_JOB");
   });
 }
@@ -118,16 +152,20 @@ export type ScanOverlay = { update(count: number, total?: number | null): void; 
 export function mountScanOverlay(root: ShadowRoot): ScanOverlay {
   const overlay = document.createElement("div");
   overlay.className = "tg-overlay";
+  overlay.setAttribute("role", "dialog");
+  overlay.setAttribute("aria-modal", "true");
+  overlay.setAttribute("aria-labelledby", "tg-overlay-title");
   overlay.innerHTML = overlayHtml(
-    "Scanning collection models…",
-    `<div class="tg-overlay__count" data-role="count">0 found so far</div>`,
+    t("scanCollection"),
+    `<div class="tg-overlay__count" data-role="count" role="status" aria-live="polite">${escapeHtml(t("foundSoFar", { count: 0 }))}</div>`,
   );
   fillIcons(overlay);
   root.appendChild(overlay);
+  focusBlockingOverlay(overlay);
   const countEl = overlay.querySelector<HTMLElement>('[data-role="count"]')!;
   return {
     update: (count, total) => {
-      countEl.textContent = total ? `${count} of ${total} found` : `${count} found so far`;
+      countEl.textContent = total ? t("foundOfTotal", { count, total }) : t("foundSoFar", { count });
     },
     remove: () => overlay.remove(),
   };
