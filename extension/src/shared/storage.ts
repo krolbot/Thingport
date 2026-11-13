@@ -11,6 +11,8 @@ export const STORAGE_KEYS = {
   connectionToken: "connectionToken",
   // A connection by approval in progress: the secret it proves itself with, and the tab it opened.
   pendingPairing: "pendingPairing",
+  // The address saved before the browser's host-permission prompt dismisses the popup.
+  pairingIntent: "pairingIntent",
   disabled: "disabled",
   // The popup's Offline features (see OFFLINE_FEATURE_DEFAULTS); unset means the default.
   normalizeMakerworld: "normalizeMakerworld",
@@ -53,6 +55,7 @@ export type StoredConfig = {
   password?: string;
   connectionToken?: string;
   pendingPairing?: PendingPairing;
+  pairingIntent?: PairingIntent;
   disabled?: boolean;
   normalizeMakerworld?: boolean;
   thingiverseDark?: boolean;
@@ -96,6 +99,7 @@ export function offlineFeatureOn(config: StoredConfig, feature: OfflineFeature):
 }
 
 export type PendingPairing = { instanceUrl: string; verifier: string; tabId: number; startedAt: number };
+export type PairingIntent = { instanceUrl: string; startedAt: number };
 
 /** Where each sign-in sent was remembered before lastSyncedSessions; dropped on update, so each is sent once more. */
 export const LEGACY_SESSION_KEYS = [

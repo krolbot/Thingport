@@ -21,6 +21,10 @@ export type ExtensionState = {
   email: string;
   /** Connected by approving Grab in Thingport, not with a saved password. */
   connectedByApproval: boolean;
+  /** An approval tab is already open; reopening the popup must not start a second one. */
+  pairing: boolean;
+  /** Kept across Chrome's host-permission prompt, which dismisses an action popup. */
+  pairingInstanceUrl: string;
   /** Work without a Thingport instance. */
   offlineFeatures: Record<OfflineFeature, boolean>;
   /** How the floating bubble on model pages looks and where it sits. */
@@ -157,8 +161,8 @@ export type BackgroundMessages = {
   SET_BUBBLE: { payload: Partial<BubbleLook>; result: null };
   /** Changes the extension's runtime catalog. */
   SET_LOCALE: { payload: { locale: Locale }; result: null };
-  /** Opens Thingport to approve this browser's Grab; it finishes in the background once approved. */
-  START_PAIRING: { payload: { instanceUrl: string }; result: null };
+  /** Continues the pairing intent saved before the browser's host-permission prompt. */
+  RESUME_PAIRING: { payload: void; result: null };
   GET_RECENT_IMPORTS: { payload: void; result: RecentImport[] };
   /** Today's edition of the icon, for the floating icon; null on an ordinary day. */
   GET_SEASONAL_ICON: { payload: void; result: SeasonalIcon | null };

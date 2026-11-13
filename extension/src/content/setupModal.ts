@@ -40,7 +40,11 @@ function disconnectedBodyHtml(problem: Disconnected, instanceUrl: string): strin
       <div class="tg-hint tg-modal__detail">${escapeHtml(problem.detail)}</div>`;
 }
 
-let open: { backdrop: HTMLElement; onKeydown: (event: KeyboardEvent) => void } | null = null;
+let open: {
+  backdrop: HTMLElement;
+  onKeydown: (event: KeyboardEvent) => void;
+  returnFocus: HTMLElement | null;
+} | null = null;
 
 /** `problem` set: configured, but signing in failed. `onRetry` re-checks after it's fixed. */
 export function openSetupModal(
@@ -48,6 +52,7 @@ export function openSetupModal(
   disconnected?: { problem: Disconnected; instanceUrl: string; onRetry: () => void },
 ): void {
   if (open) return;
+  const returnFocus = root.activeElement instanceof HTMLElement ? root.activeElement : null;
   const backdrop = document.createElement("div");
   backdrop.className = "tg-modal-backdrop";
   backdrop.innerHTML = `
@@ -88,7 +93,26 @@ export function openSetupModal(
   });
 
   const onKeydown = (event: KeyboardEvent) => {
-    if (event.key === "Escape") closeSetupModal();
+    if (event.key === "Escape") {
+      closeSetupModal();
+      return;
+    }
+    if (event.key !== "Tab") return;
+    const focusable = [...backdrop.querySelectorAll<HTMLElement>("button:not([disabled])")];
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable.at(-1)!;
+    const active = root.activeElement;
+    if (!(active instanceof HTMLElement) || !focusable.includes(active)) {
+      event.preventDefault();
+      (event.shiftKey ? last : first).focus();
+    } else if (event.shiftKey && active === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && active === last) {
+      event.preventDefault();
+      first.focus();
+    }
   };
   document.addEventListener("keydown", onKeydown, true);
   backdrop.querySelector(".tg-close")!.addEventListener("click", closeSetupModal);
@@ -97,13 +121,15 @@ export function openSetupModal(
   });
 
   root.appendChild(backdrop);
-  open = { backdrop, onKeydown };
+  open = { backdrop, onKeydown, returnFocus };
   openBtn.focus();
 }
 
 export function closeSetupModal(): void {
   if (!open) return;
-  document.removeEventListener("keydown", open.onKeydown, true);
-  open.backdrop.remove();
+  const { backdrop, onKeydown, returnFocus } = open;
+  document.removeEventListener("keydown", onKeydown, true);
+  backdrop.remove();
   open = null;
+  if (returnFocus?.isConnected) returnFocus.focus();
 }
